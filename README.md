@@ -59,7 +59,7 @@ Kort:
 
 ## Simulatie
 
-Online speelbaar op **https://kvr-ciber.github.io/sc02-solar-hypercar/sim/** (WASD of pijltjes, C = camera, R = reset, gamepad werkt ook).
+Online speelbaar op **https://kvr-ciber.github.io/sc02-solar-hypercar/sim/** (WASD of pijltjes, spatie = rem, C = camera, R = reset, gamepad werkt ook). In de instellingen kies je tussen het **circuit** en een **oneindige rechte lijn** met afstandsteller en 12 m-sprinttimer.
 
 Lokaal draaien:
 

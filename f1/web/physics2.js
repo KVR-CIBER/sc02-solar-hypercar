@@ -9,9 +9,9 @@ const HD3 = { ke: 0.00148, R: 0.5, I0: 0.6, J: 1.1e-7 };   // Tamiya Hyper-Dash 
 
 export function createVehicle(o = {}) {
   const c = {
-    mass: 0.745, wb: 0.230, cgFromRear: 0.098, hCg: 0.026, Iz: 0.0098,
+    mass: 0.715, wb: 0.230, cgFromRear: 0.098, hCg: 0.026, Iz: 0.0098,
     rRear: 0.022, rFront: 0.021, G: 35 / 10, nMot: 2, eta: 0.92, Rdrv: 0.06,
-    mu: 0.95, B: 8, C: 1.45, Crr: 0.015, CdA: 0.0065, ClA: 0.006, rho: 1.2,
+    mu: 0.95, B: 8, C: 1.45, muF: 0.9, BF: 6, Crr: 0.015, CdA: 0.0065, ClA: 0.006, rho: 1.2,   // front tyres narrower (15 vs 20 mm): less grip, softer → stable understeer
     steerMax: 20 * Math.PI / 180, steerRate: 9.0,
     battery: "lipo3s", vMotorMax: 4.8, tc: true, launch: true,
     pPi: 3.4, pEsp: 0.45, pServoIdle: 0.12, convEff: 0.9,
@@ -34,6 +34,7 @@ export function createVehicle(o = {}) {
     return bat.cells * Math.min(bat.vFull, v);
   }
   function tyre(Fz, slip) { return c.mu * Fz * Math.sin(c.C * Math.atan(c.B * slip)); }
+  function tyreF(Fz, slip) { return c.mu * c.muF * Fz * Math.sin(c.C * Math.atan(c.BF * slip)); }
 
   // input: throttle -1..1 (negative = reverse), brake 0..1, steer -1..1 (left positive)
   function step(dt, inp) {
@@ -46,38 +47,56 @@ export function createVehicle(o = {}) {
     // --- motor drive (H-bridge; firmware caps the motor voltage)
     const vx = s.vx, spd = Math.abs(vx) + 1e-6;
     let thr = Math.max(-1, Math.min(1, inp.throttle));
-    const uSurf = s.w / c.G * c.rRear;
-    const kappa = (uSurf - vx) / Math.max(Math.abs(uSurf), Math.abs(vx), 0.3);
-    if (c.tc && Math.abs(kappa) > 0.18 && Math.sign(kappa) === Math.sign(thr)) thr *= Math.max(0.35, 1 - (Math.abs(kappa) - 0.18) * 4);
-    let Vm = thr * Math.min(c.vMotorMax, V0);
-    let Im;
-    const Rm = mot.R + c.Rdrv;
-    if (inp.brake > 0.05 && Math.abs(thr) < 0.05) {
-      Im = -mot.ke * s.w / Rm * inp.brake;                    // short-brake through the H-bridge
-      Vm = 0;
-    } else {
-      Im = (Vm - mot.ke * s.w) / Rm;
-      if (Vm >= 0 && Im < 0 && thr >= 0) Im = Math.max(Im, -mot.ke * s.w / Rm * 0.0);   // freewheel (no regen)
+    // traction control acts on the slip at the start of the step
+    const slipOf = (w) => { const u = w / c.G * c.rRear; return (u - vx) / Math.max(Math.abs(u), Math.abs(vx), 0.3); };
+    const kappa0 = slipOf(s.w);
+    if (c.tc && Math.abs(kappa0) > 0.18 && Math.sign(kappa0) === Math.sign(thr)) thr *= Math.max(0.35, 1 - (Math.abs(kappa0) - 0.18) * 4);
+    const braking = inp.brake > 0.05 && Math.abs(thr) < 0.05;
+    const Vm = braking ? 0 : thr * Math.min(c.vMotorMax, V0);
+    // brake = slip controller in the firmware (ABS-like): the H-bridge servoes the motor to a small
+    // negative slip instead of locking the rear. Less slip while steering, so the tail keeps its grip.
+    let wT = 0;
+    if (braking) {
+      const steerUse = Math.min(1, Math.abs(s.delta) / (c.steerMax * Math.max(0.22, Math.min(1, 2.2 / (Math.abs(vx) + 0.6)))));
+      const kT = (c.tc ? -0.12 : -0.5) * inp.brake * (1 - steerUse) ** 2;
+      wT = vx * (1 + kT) * c.G / c.rRear;
+      if (Math.sign(wT) !== Math.sign(s.w)) wT = 0;
     }
-    const Pm = Math.max(0, Vm * Im);
-    let tau = mot.ke * Im - Math.sign(s.w) * mot.ke * mot.I0 * Math.min(1, Math.abs(s.w) / 50);
+    const Rm = mot.R + c.Rdrv;
     // --- loads
     const Fz = m * g + 0.5 * c.rho * c.ClA * vx * vx;
     const dFz = m * s.ax * c.hCg / c.wb;
     const FzR = Math.max(0.05, Fz * a / c.wb + dFz), FzF = Math.max(0.05, Fz * b / c.wb - dFz);
-    // --- tyre forces
-    const vxr = Math.max(Math.abs(vx), 0.25) * (vx < 0 ? -1 : 1);
-    const alphaF = s.delta - Math.atan2(s.vy + a * s.r, Math.abs(vxr)) * Math.sign(vxr || 1);
-    const alphaR = -Math.atan2(s.vy - b * s.r, Math.abs(vxr)) * Math.sign(vxr || 1);
-    let FxR = tyre(FzR, kappa);
-    let FyR = tyre(FzR, alphaR);
+    // slip angles in each wheel's own frame: the lateral force always opposes the wheel's sideways
+    // velocity, forwards and in reverse (the old sign trick pushed the car sideways when reversing)
+    const cd = Math.cos(s.delta), sd = Math.sin(s.delta), vyF = s.vy + a * s.r, vyR = s.vy - b * s.r;
+    const alphaF = -Math.atan2(-vx * sd + vyF * cd, Math.max(Math.abs(vx * cd + vyF * sd), 0.25));
+    const alphaR = -Math.atan2(vyR, Math.max(Math.abs(vx), 0.25));
     const lim = c.mu * FzR;
-    const tot = Math.hypot(FxR, FyR);
-    if (tot > lim) { FxR *= lim / tot; FyR *= lim / tot; }
-    const FyF = tyre(FzF, alphaF);
-    // --- motor shaft
-    const tauLoad = FxR * c.rRear / (c.G * (FxR * s.w >= 0 ? c.eta : 1 / c.eta));
-    s.w += dt * (tau - tauLoad) / Jm;
+    // net shaft torque and rear tyre forces as a function of motor speed w (body state frozen)
+    function shaft(w) {
+      let Im;
+      let V = Vm;
+      if (braking) { const Vx = Math.min(c.vMotorMax, V0); V = Math.max(-Vx, Math.min(Vx, mot.ke * wT + 0.2 * (wT - w))); }
+      if (braking) Im = (V - mot.ke * w) / Rm;
+      else { Im = (Vm - mot.ke * w) / Rm; if (Vm >= 0 && Im < 0 && thr >= 0) Im = 0; }   // freewheel (no regen)
+      const tau = mot.ke * Im - Math.sign(w) * mot.ke * mot.I0 * Math.min(1, Math.abs(w) / 50);
+      const k = slipOf(w);
+      let Fx = tyre(FzR, k), Fy = tyre(FzR, alphaR);
+      const tot = Math.hypot(Fx, Fy);
+      if (tot > lim) { Fx *= lim / tot; Fy *= lim / tot; }
+      const tauLoad = Fx * c.rRear / (c.G * (Fx * w >= 0 ? c.eta : 1 / c.eta));
+      return { net: tau - tauLoad, Fx, Fy, Im, k, V };
+    }
+    // the wheel+motor inertia is tiny, so tyre slip makes this ODE very stiff:
+    // explicit Euler oscillated (wheel-spin chatter). Linearised implicit step instead.
+    const f0 = shaft(s.w), e = Math.max(0.5, Math.abs(s.w) * 1e-3);
+    const dfdw = (shaft(s.w + e).net - shaft(s.w - e).net) / (2 * e);
+    s.w += dt * f0.net / (Jm - dt * Math.min(0, dfdw));
+    const sh = shaft(s.w);
+    const FxR = sh.Fx, FyR = sh.Fy, kappa = sh.k, uSurf = s.w / c.G * c.rRear;
+    const Pm = Math.max(0, (braking ? sh.V : Vm) * sh.Im);
+    const FyF = tyreF(FzF, alphaF);
     // --- body (vehicle frame)
     const drag = 0.5 * c.rho * c.CdA * vx * Math.abs(vx);
     const roll = c.Crr * Fz * Math.tanh(vx / 0.05);

@@ -69,7 +69,7 @@ const grassT = tex(512, 512, (g, w, h) => {
   noise(g, w, h, "#4d6b2c", 0.12, 50000, 2);
   for (let i = 0; i < 9000; i++) { g.strokeStyle = `rgba(${90 + Math.random() * 60},${120 + Math.random() * 60},40,0.35)`; const x = Math.random() * w, y = Math.random() * h;
     g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.random() * 2 - 1, y - 3 - Math.random() * 4); g.stroke(); }
-}, [180, 180]);
+}, [410, 410]);
 const kerbT = tex(128, 16, (g, w, h) => { for (let i = 0; i < 4; i++) { g.fillStyle = i % 2 ? "#f2f2f2" : "#d01c1f"; g.fillRect(i * 32, 0, 32, h); } }, [1, 1]);
 const wallT = tex(512, 64, (g, w, h) => { g.fillStyle = "#e8eaee"; g.fillRect(0, 0, w, h);
   g.fillStyle = "#b5121b"; g.fillRect(0, 10, w, 8); g.fillRect(0, h - 18, w, 8);
@@ -113,6 +113,7 @@ const epoxyN = (() => {                                           // orange-peel
 })();
 
 // ------------------------------------------------------------------ circuit
+const SCENE_N0 = scene.children.length;          // everything added from here up to the car is circuit scenery
 const CTRL = [[0, 0], [16, 0], [21, 1], [23.5, 4.5], [22, 8], [18, 9.2], [13, 8.4], [9.5, 10.3], [8.5, 14], [11, 18], [17, 19.5], [24, 19],
   [30.5, 15], [33.5, 8], [33.5, 0], [30, -6], [23, -9.5], [13, -10.5], [4, -10.2], [-2.5, -8.6], [-6.6, -5], [-6.8, -1.6], [-4, 0]];
 // world: x east, z south; track point (px, py) -> (px, 0, -py)
@@ -151,7 +152,7 @@ function ribbon(off0, off1, y, mat, uScale = 1, filter = null, vRepeat = 1) {
   g.setIndex(idx); g.computeVertexNormals();
   const m = new THREE.Mesh(g, mat); m.receiveShadow = true; scene.add(m); return m;
 }
-const ground = new THREE.Mesh(new THREE.PlaneGeometry(1400, 1400), new THREE.MeshStandardMaterial({ map: grassT, roughness: 0.95 }));
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(3200, 3200), new THREE.MeshStandardMaterial({ map: grassT, roughness: 0.95 }));
 ground.rotation.x = -Math.PI / 2; ground.position.set(14, -0.002, -5); ground.receiveShadow = true; scene.add(ground);
 const asphalt = new THREE.MeshStandardMaterial({ map: asphaltT, roughnessMap: asphaltR, roughness: 0.9, metalness: 0 });
 asphaltT.repeat.set(1, 1);
@@ -235,7 +236,66 @@ for (let i = 0; i < NT; i++) {
 trees.castShadow = true; scene.add(trees, trunks);
 for (let i = 0; i < 9; i++) {
   const h = new THREE.Mesh(new THREE.SphereGeometry(60 + rnd() * 40, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x5b7346, roughness: 1 }));
-  const a = (i / 9) * Math.PI * 2; h.scale.y = 0.18 + rnd() * 0.12; h.position.set(14 + Math.cos(a) * 330, -2, -5 + Math.sin(a) * 330); scene.add(h);
+  const a = (i / 9) * Math.PI * 2; h.scale.y = 0.18 + rnd() * 0.12; h.position.set(14 + Math.cos(a) * 330, -2, -5 + Math.sin(a) * 330); h.userData.shared = true; scene.add(h);
+}
+ground.userData.shared = true;
+const circuitG = new THREE.Group();
+for (const o of scene.children.slice(SCENE_N0)) if (!o.userData.shared) circuitG.add(o);
+scene.add(circuitG);
+
+// ------------------------------------------------------------------ endless straight
+// Periodic scenery (period SL) + the car is shifted back by SL when it gets too far,
+// so it never leaves the high-precision zone around the origin and the shift is invisible.
+const SL = 200, SPAN = 1300;
+const straightG = new THREE.Group(); straightG.visible = false; scene.add(straightG);
+function strip(z0, z1, y, mat, uPerM, vRep = 1) {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute([-SPAN, y, z0, SPAN, y, z0, -SPAN, y, z1, SPAN, y, z1], 3));
+  g.setAttribute("uv", new THREE.Float32BufferAttribute([-SPAN * uPerM, 0, SPAN * uPerM, 0, -SPAN * uPerM, vRep, SPAN * uPerM, vRep], 2));
+  g.setIndex([0, 2, 1, 1, 2, 3]); g.computeVertexNormals();
+  const m = new THREE.Mesh(g, mat); m.receiveShadow = true; straightG.add(m); return m;
+}
+strip(-HALF - 0.12, HALF + 0.12, 0.001, asphalt, 0.8, 1.1);
+strip(-HALF + 0.02, -HALF + 0.05, 0.0018, lineM, 1); strip(HALF - 0.05, HALF - 0.02, 0.0018, lineM, 1);
+{ // centre dashes (2 m period) – they give the sense of speed
+  const n = Math.floor((2 * SPAN) / 2), dash = new THREE.InstancedMesh(new THREE.PlaneGeometry(0.5, 0.025).rotateX(-Math.PI / 2), lineM, n);
+  for (let i = 0; i < n; i++) { M4.makeTranslation(-SPAN + i * 2 + 1, 0.0018, 0); dash.setMatrixAt(i, M4); }
+  dash.receiveShadow = true; straightG.add(dash);
+}
+for (const z of [-WALL, WALL]) {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute([-SPAN, 0, z, SPAN, 0, z, -SPAN, 0.22, z, SPAN, 0.22, z], 3));
+  g.setAttribute("uv", new THREE.Float32BufferAttribute([-SPAN * 0.5, 0, SPAN * 0.5, 0, -SPAN * 0.5, 1, SPAN * 0.5, 1], 2));
+  g.setIndex([0, 1, 2, 1, 3, 2]); g.computeVertexNormals();
+  const w = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: wallT, roughness: 0.7, side: THREE.DoubleSide })); w.castShadow = w.receiveShadow = true; straightG.add(w);
+}
+{ // 10 m boards on both walls + a chequered line every SL metres
+  const boardM = new THREE.MeshStandardMaterial({ color: 0x15171c, roughness: 0.5 }), nb = Math.floor((2 * SPAN) / 10);
+  const boards = new THREE.InstancedMesh(new THREE.BoxGeometry(0.03, 0.16, 0.012), boardM, nb * 2);
+  for (let i = 0; i < nb; i++) for (const [j, z] of [[0, -WALL + 0.01], [1, WALL - 0.01]]) { M4.makeTranslation(-SPAN + i * 10, 0.3, z); boards.setMatrixAt(i * 2 + j, M4); }
+  straightG.add(boards);
+  for (let x = -SPAN + (SPAN % SL); x <= SPAN; x += SL) {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(0.12, HALF * 2), new THREE.MeshStandardMaterial({ map: checkerT, roughness: 0.6 }));
+    m.rotation.x = -Math.PI / 2; m.position.set(x, 0.0025, 0); straightG.add(m);
+  }
+}
+{ // tree rows, periodic in SL
+  const per = 46, copies = Math.ceil(SPAN / SL) * 2 + 1, n = per * copies, base = [];
+  for (let i = 0; i < per; i++) { const side = i % 2 ? 1 : -1; base.push([rnd() * SL, side * (4 + rnd() * 34), 0.75 + rnd() * 0.9, rnd() * 6.28, 0.9 + rnd() * 0.35, rnd(), rnd(), rnd()]); }
+  const st = new THREE.InstancedMesh(trees.geometry, leafM, n), sk = new THREE.InstancedMesh(trunks.geometry, trunkM, n);
+  let k = 0;
+  for (let c = -(copies - 1) / 2; c <= (copies - 1) / 2; c++) for (const [x, z, sc, rot, sy, h1, h2, h3] of base) {
+    M4.compose(new THREE.Vector3(x + c * SL, 0, z), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), rot), new THREE.Vector3(sc, sc * sy, sc));
+    st.setMatrixAt(k, M4); sk.setMatrixAt(k, M4); col.setHSL(0.31 + h1 * 0.06, 0.30 + h2 * 0.12, 0.10 + h3 * 0.06); st.setColorAt(k, col); k++;
+  }
+  st.castShadow = true; straightG.add(st, sk);
+}
+let TRACK = "circuit";
+try { TRACK = Q.get("track") === "recht" ? "recht" : localStorage.getItem("sc02.track") || "circuit"; } catch { }
+function applyTrack() {
+  circuitG.visible = TRACK === "circuit"; straightG.visible = TRACK === "recht";
+  $("map").style.display = TRACK === "recht" ? "none" : "";
+  $("lb").textContent = "";
 }
 
 // ------------------------------------------------------------------ car
@@ -425,6 +485,7 @@ function readInput() {
     if (gp.buttons[0]?.pressed && !gp._a) resetCar(); gp._a = gp.buttons[0]?.pressed;
   }
   if (MOBILE) { thr = Math.max(thr, touchGas); if (touchBrake) { if (veh.s.vx > 0.4) brk = 1; else thr = -0.6; } steer -= touchSteer; }
+  if (brk > 0.05) thr = 0;                              // brake always wins over gas (W + space used to keep accelerating)
   // speed-sensitive steering (same limiter as the ESP firmware) + smoothing for digital keys
   const v = Math.abs(veh.s.vx), lim = Math.max(0.22, Math.min(1, 2.2 / (v + 0.6)));
   steerSm += (Math.max(-1, Math.min(1, steer)) * lim - steerSm) * Math.min(1, lastDt * 9);
@@ -440,6 +501,8 @@ function nearestIdx(x, z, hint = -1) {
 }
 let apIdx = 0;
 function autopilot() {
+  if (TRACK === "recht") { const s = veh.s, want = Math.max(-0.4, Math.min(0.4, -0.5 * s.y));
+    return { throttle: 1, brake: 0, steer: Math.max(-1, Math.min(1, (want - Math.atan2(Math.sin(s.psi), Math.cos(s.psi))) * 3)) }; }
   const s = veh.s, wx = s.x, wz = -s.y;
   apIdx = nearestIdx(wx, wz, apIdx);
   const look = Math.round((0.45 + 0.16 * Math.abs(s.vx)) / (TLEN / NS));
@@ -456,7 +519,28 @@ function autopilot() {
 
 // ------------------------------------------------------------------ walls + laps
 let lapStart = 0, best = null, lastIdx = 0, lapValid = false;
+let odoOff = 0, sprint = null, sprintBest = null;
+function shiftWorld(d) {                                  // move car + camera + smoke by d metres along x
+  veh.s.x += d; odoOff -= d; camera.position.x += d; controls.target.x += d;
+  for (const P of puffs) P.sp.position.x += d;
+}
+function collideStraight() {
+  const s = veh.s, lim = WALL - 0.11;
+  if (Math.abs(s.y) > lim) {
+    const sgn = Math.sign(s.y); s.y = sgn * lim;
+    const cs = Math.cos(s.psi), sn = Math.sin(s.psi);
+    let vwx = s.vx * cs - s.vy * sn, vwy = s.vx * sn + s.vy * cs;
+    if (vwy * sgn > 0) { vwy = -0.4 * vwy; vwx *= 0.75; s.vx = vwx * cs + vwy * sn; s.vy = -vwx * sn + vwy * cs; s.r *= 0.5; }
+  }
+  if (s.x > SL / 2) shiftWorld(-SL); else if (s.x < -SL / 2) shiftWorld(SL);
+  // 12 m sprint from standstill (same distance as the Challenger rule)
+  const odo = s.x + odoOff;
+  if (s.speed < 0.03) sprint = { t0: null };
+  else if (sprint && sprint.t0 === null) sprint = { t0: s.t, x0: odo };
+  if (sprint && sprint.t0 !== null && odo - sprint.x0 >= 12) { const t = s.t - sprint.t0; sprintBest = sprintBest == null ? t : Math.min(sprintBest, t); $("lb").textContent = `12 m · ${t.toFixed(2)} s · best ${sprintBest.toFixed(2)} s`; sprint = null; }
+}
 function collide() {
+  if (TRACK === "recht") return collideStraight();
   const s = veh.s, wx = s.x, wz = -s.y;
   const k = nearestIdx(wx, wz, lastIdx);
   const p = TP[k], n = TN[k];
@@ -481,7 +565,7 @@ function collide() {
   lastIdx = k;
 }
 const fmt = (t) => `${Math.floor(t / 60)}:${(t % 60).toFixed(3).padStart(6, "0")}`;
-function resetCar() { makeVeh(); lapStart = 0; lastIdx = 0; apIdx = 0; lapValid = false; }
+function resetCar() { makeVeh(); lapStart = 0; lastIdx = 0; apIdx = 0; lapValid = false; odoOff = 0; sprint = null; }
 
 // ------------------------------------------------------------------ cameras
 const CAMS = ["chase", "tv", "onboard", "orbit"];
@@ -504,6 +588,10 @@ function updateCamera(dt, snap = false) {
     camPos.copy(p).addScaledVector(fwd, 0.17).add(new THREE.Vector3(0, 0.072, 0));
     camLook.copy(p).addScaledVector(fwd, 2.5).add(new THREE.Vector3(0, 0.03, 0));
     camera.position.copy(camPos); camera.lookAt(camLook); camera.fov = 58; camera.updateProjectionMatrix();
+  } else if (cam === "tv" && TRACK === "recht") {
+    const cx = Math.round((p.x + 5) / 12) * 12;
+    camera.position.set(cx, 0.5, 1.9); camera.lookAt(p.x, 0.05, p.z);
+    camera.fov = THREE.MathUtils.clamp(9 * Math.hypot(cx - p.x, 1.9 - p.z) / 4, 6, 40); camera.updateProjectionMatrix();
   } else if (cam === "tv") {
     let bi = 0, bd = 1e9; TVCAMS.forEach((c, i) => { const d = (c[0] - p.x) ** 2 + (c[2] - p.z) ** 2; if (d < bd) { bd = d; bi = i; } });
     camera.position.set(...TVCAMS[bi]); camera.lookAt(p.x, 0.05, p.z);
@@ -532,6 +620,7 @@ function smoke(dt) {
 const mapC = $("map").getContext("2d");
 let mapBox = null;
 function drawMap() {
+  if (TRACK === "recht") return;
   const g = mapC, W = 260;
   if (!mapBox) { let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9; TP.forEach((p) => { x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); z0 = Math.min(z0, p.z); z1 = Math.max(z1, p.z); });
     const sc = (W - 30) / Math.max(x1 - x0, z1 - z0); mapBox = { x0, z0, sc, ox: (W - (x1 - x0) * sc) / 2, oz: (W - (z1 - z0) * sc) / 2 }; }
@@ -552,7 +641,7 @@ function hud() {
   $("soc").style.background = s.soc > 0.3 ? "#33d17a" : s.soc > 0.12 ? "#f6c344" : "#ff3b30";
   const bars = [["pm", "bm", P.motor, 30], ["pp", "bp", P.pi, 6], ["pe", "be", P.esp, 2], ["ps", "bs", P.servo, 3]];
   for (const [t, b, v, mx] of bars) { $(t).textContent = fx(v, 1); $(b).style.width = Math.min(100, (v / mx) * 100) + "%"; }
-  $("lt").textContent = fmt(Math.max(0, s.t - lapStart));
+  $("lt").textContent = TRACK === "recht" ? `${Math.round(Math.max(0, s.x + odoOff))} m` : fmt(Math.max(0, s.t - lapStart));
 }
 
 // ------------------------------------------------------------------ settings
@@ -561,6 +650,9 @@ $("bset").onclick = () => $("sheet").classList.toggle("hidden");
 $("bcam").onclick = () => nextCam();
 $("bres").onclick = () => resetCar();
 seg("sbat", (v) => { cfg.battery = v; resetCar(); });
+seg("strk", (v) => { TRACK = v; try { localStorage.setItem("sc02.track", v); } catch { } applyTrack(); if (car) { resetCar(); updateCamera(0.016, true); } });
+[...$("strk").children].forEach((b) => b.classList.toggle("on", b.dataset.v === TRACK));
+applyTrack();
 seg("slim", (v) => { cfg.vMotorMax = +v; veh.c.vMotorMax = +v; });
 seg("stc", (v) => { cfg.tc = v === "1"; veh.c.tc = cfg.tc; });
 seg("sxr", (v) => { const xr = v === "1"; car.userData.inside.visible = xr; M.body.transparent = xr; M.body.opacity = xr ? 0.18 : 1; M.body.depthWrite = !xr;
@@ -569,7 +661,7 @@ seg("sxr", (v) => { const xr = v === "1"; car.userData.inside.visible = xr; M.bo
 $("paint").addEventListener("click", (e) => { const i = e.target.closest("i"); if (!i) return; [...$("paint").children].forEach((x) => x.classList.toggle("on", x === i)); M.body.color.set(i.dataset.c); });
 
 // ------------------------------------------------------------------ main loop
-let last = performance.now(), demo = true;
+let last = performance.now(), demo = true, userDrove = false;
 function poseCar() {
   const s = veh.s;
   car.position.set(s.x, 0, -s.y);
@@ -586,8 +678,8 @@ function poseCar() {
 function step(dt) {
   lastDt = dt;
   const user = readInput();
-  const idle = performance.now() - lastInput > 9000;
-  demo = idle;
+  if (lastInput > 0) userDrove = true;                // demo autopilot only until the first input – it never takes over again
+  demo = !userDrove;
   const inp = demo ? autopilot() : user;
   const n = Math.ceil(dt / 0.001), h = dt / n;
   for (let i = 0; i < n; i++) veh.step(h, inp);
