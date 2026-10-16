@@ -1,0 +1,49 @@
+{
+ "wb": 230.0,
+ "axle_rz": 22.0,
+ "axle_fz": 21.0,
+ "track_r": 150.0,
+ "track_f": 146.0,
+ "rear_d": 44.0,
+ "front_d": 42.0,
+ "kingpin_y": 64.0,
+ "servo_x": 214.0,
+ "cd": 18.08,
+ "spur_z": 35,
+ "pinion_z": 10,
+ "tie_in": [
+  214.0,
+  9.0
+ ],
+ "arm_end": [
+  219.5,
+  58.0
+ ],
+ "mass": {
+  "body (ASA)": 128.77863434809586,
+  "canopy (smoke PETG)": 18.49853677896537,
+  "rear_module": 16.46020745076064,
+  "front_module": 8.725380947571193,
+  "splitter": 14.930814240000004,
+  "rear_wing": 17.926642209847902,
+  "diffuser": 7.870032150118191,
+  "battery_tray": 5.791362010579512,
+  "pi_tray": 1.0627269307178882,
+  "esp_bridge": 4.470801638382989,
+  "power_tray_L": 1.5745155268896784,
+  "power_tray_R": 1.5745155268896784,
+  "uprights+clips+small": 17.40019746315862,
+  "floor (2 mm acrylic)": 105.80155452358555,
+  "4 rims (PLA)": 28.28142650076275,
+  "4 tyres (PU/silicone)": 48.32586444297246,
+  "kit panel": 25,
+  "Pi 4": 46,
+  "ESP32-S3": 10,
+  "servo MG90S": 14,
+  "2x 130 motor": 38,
+  "battery 3S 1300 / 4xAA+holders": 115,
+  "buck-boost + INA226 + 2x DRV8874": 12,
+  "wires, screws, bearings, axles, magnets": 28
+ },
+ "total_g": 715.4732126892983
+}

@@ -1,0 +1,39 @@
+<!doctype html><html><head><meta charset="utf-8"><title>preview</title>
+<style>html,body{margin:0;height:100%;background:#0e1116;overflow:hidden}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"./vendor/three.module.js","three/addons/":"./vendor/addons/"}}</script>
+</head><body><script type="module">
+// Studio preview of STL parts: preview.html?f=a.stl:color,b.stl:color&az=40&el=20&d=1&t=x,y,z
+import * as THREE from "three";
+import { STLLoader } from "three/addons/loaders/STLLoader.js";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+const Q = new URLSearchParams(location.search);
+const r = new THREE.WebGLRenderer({ antialias: true }); r.setSize(innerWidth, innerHeight);
+r.toneMapping = THREE.ACESFilmicToneMapping; r.outputColorSpace = THREE.SRGBColorSpace; r.shadowMap.enabled = true;
+document.body.appendChild(r.domElement);
+const s = new THREE.Scene(); s.background = new THREE.Color(0x15181e);
+s.environment = new THREE.PMREMGenerator(r).fromScene(new RoomEnvironment(), 0.04).texture;
+const cam = new THREE.PerspectiveCamera(+(Q.get("fov") || 30), innerWidth / innerHeight, 1, 5000);
+const root = new THREE.Group(); root.rotation.x = -Math.PI / 2; s.add(root);
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000), new THREE.ShadowMaterial({ opacity: 0.35 }));
+ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; s.add(ground);
+const sun = new THREE.DirectionalLight(0xffffff, 2.2); sun.position.set(300, 600, 200); sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -400, right: 400, top: 400, bottom: -400, far: 2000 }); s.add(sun);
+const L = new STLLoader();
+const files = (Q.get("f") || "").split(",").filter(Boolean);
+let n = 0;
+for (const f of files) {
+  const [name, col, rough, metal] = f.split(":");
+  L.load(name, (g) => {
+    g.computeVertexNormals();
+    const m = new THREE.Mesh(g, new THREE.MeshPhysicalMaterial({ color: "#" + (col || "cccccc"), roughness: +(rough || 0.35), metalness: +(metal || 0), clearcoat: 0.6, clearcoatRoughness: 0.15 }));
+    m.castShadow = m.receiveShadow = true; root.add(m);
+    if (++n === files.length) frame();
+  });
+}
+function frame() {
+  const b = new THREE.Box3().setFromObject(root), c = b.getCenter(new THREE.Vector3()), sz = b.getSize(new THREE.Vector3()).length();
+  const az = THREE.MathUtils.degToRad(+(Q.get("az") || 35)), el = THREE.MathUtils.degToRad(+(Q.get("el") || 22)), d = sz * +(Q.get("d") || 1.25);
+  cam.position.set(c.x + d * Math.cos(el) * Math.cos(az), c.y + d * Math.sin(el), c.z + d * Math.cos(el) * Math.sin(az));
+  cam.lookAt(c); r.render(s, cam); window.__done = true;
+}
+</script></body></html>

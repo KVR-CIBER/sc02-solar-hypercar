@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Solar Challenger – Simulatie</title>
+<link rel="stylesheet" href="style.css">
+<script type="importmap">
+{ "imports": { "three": "./vendor/three.module.js", "three/addons/": "./vendor/addons/" } }
+</script>
+</head>
+<body>
+<canvas id="view"></canvas>
+
+<div id="loading"><div class="spin"></div><div id="loadtxt">3D-model laden…</div></div>
+
+<!-- top bar -->
+<header id="top">
+  <div class="brand"><b>SOLAR CHALLENGER</b><span>Solar Olympiade 2027 · simulatie</span></div>
+  <nav id="tabs">
+    <button data-tab="race" class="on">Race</button>
+    <button data-tab="parts">Onderdelen</button>
+    <button data-tab="mold">Band-mal</button>
+    <button data-tab="files">Downloads</button>
+  </nav>
+</header>
+
+<!-- race HUD -->
+<section id="hud">
+  <div class="timer"><span id="t">0.000</span><small>s</small></div>
+  <div class="hudrow">
+    <div><label>snelheid</label><b id="spd">0.0</b><small>km/h</small></div>
+    <div><label>afstand</label><b id="dist">0.00</b><small>m</small></div>
+    <div><label>stroom</label><b id="amp">0.0</b><small>A</small></div>
+    <div><label>batterij</label><b id="vb">0.00</b><small>V</small></div>
+    <div><label>gas</label><b id="duty">0</b><small>%</small></div>
+  </div>
+  <div class="slip"><label>wielslip</label><div class="bar"><i id="slipbar"></i></div><b id="slip">0</b><small>%</small></div>
+</section>
+
+<div id="result" class="hidden">
+  <div class="big" id="res-t">2.332 s</div>
+  <div id="res-sub"></div>
+</div>
+<div id="countdown" class="hidden"></div>
+<div id="title-card" class="hidden"><h1 id="tc-h"></h1><p id="tc-p"></p></div>
+
+<!-- side panel -->
+<aside id="panel">
+  <div class="pane" id="pane-race">
+    <div class="row btns">
+      <button id="go" class="primary">▶ START <kbd>spatie</kbd></button>
+      <button id="reset">↺ <kbd>R</kbd></button>
+    </div>
+    <div class="row">
+      <label>Slow motion</label>
+      <div class="seg" id="slowmo"><button data-v="1" class="on">1×</button><button data-v="0.5">½×</button><button data-v="0.25">¼×</button><button data-v="0.1">⅒×</button></div>
+    </div>
+    <div class="row">
+      <label>Camera <kbd>C</kbd></label>
+      <div class="seg" id="cams"><button data-v="chase" class="on">Volg</button><button data-v="side">Zijkant</button><button data-v="top">Boven</button><button data-v="finish">Finish</button><button data-v="free">Vrij</button></div>
+    </div>
+    <h3>Auto</h3>
+    <div class="grid">
+      <label>Motor</label><select id="motor"></select>
+      <label>Aantal motoren</label><div class="seg" id="nmot"><button data-v="1">1</button><button data-v="2" class="on">2</button></div>
+      <label>Pinion / tandwiel</label><div class="pair"><input id="pinion" type="number" min="6" max="20" value="8"><span>:</span><input id="spur" type="number" min="12" max="80" value="42"></div>
+      <label>Wieldiameter</label><div class="rng"><input id="D" type="range" min="28" max="60" step="1" value="40"><output id="Do">40 mm</output></div>
+      <label>Raspberry Pi 4 aan boord</label><input id="pi4" type="checkbox">
+      <label>Extra massa</label><div class="rng"><input id="xm" type="range" min="0" max="100" step="5" value="0"><output id="xmo">0 g</output></div>
+    </div>
+    <h3>Launch control <span class="hint">(ESP32-S3)</span></h3>
+    <div class="grid">
+      <label>Aan</label><input id="lc" type="checkbox" checked>
+      <label>Start-gas</label><div class="rng"><input id="d0" type="range" min="0.2" max="1" step="0.05" value="0.45"><output id="d0o">45 %</output></div>
+      <label>Ramp</label><div class="rng"><input id="Tr" type="range" min="0" max="0.8" step="0.05" value="0.35"><output id="Tro">350 ms</output></div>
+      <span></span><button id="opt" class="small">⚡ optimaliseer launch</button>
+    </div>
+    <h3>Omgeving</h3>
+    <div class="grid">
+      <label>Grip µ (vloer)</label><div class="rng"><input id="mu" type="range" min="0.4" max="1.3" step="0.05" value="0.9"><output id="muo">0.90</output></div>
+      <label>Batterij-weerstand</label><div class="rng"><input id="Rb" type="range" min="0.15" max="0.7" step="0.01" value="0.35"><output id="Rbo">0.35 Ω</output></div>
+      <label>Batterij</label><div class="seg" id="voc"><button data-v="5.2" class="on">vers 5.2 V</button><button data-v="4.9">rust 4.9 V</button></div>
+    </div>
+    <h3>Spookauto <span class="hint">(baan 2)</span></h3>
+    <div class="seg wide" id="ghost"><button data-v="nolc" class="on">zonder launch</button><button data-v="prev">vorige run</button><button data-v="best">beste run</button><button data-v="off">uit</button></div>
+    <h3>Runs</h3>
+    <table id="runs"><thead><tr><th>#</th><th>tijd</th><th>km/h</th><th>config</th></tr></thead><tbody></tbody></table>
+  </div>
+
+  <div class="pane hidden" id="pane-parts">
+    <div class="row"><label>Uit elkaar</label><div class="rng"><input id="explode" type="range" min="0" max="1" step="0.01" value="0"><output id="exo">0 %</output></div></div>
+    <div class="row"><label>Röntgen chassis</label><input id="xray" type="checkbox"></div>
+    <div class="row"><label>Draai wielen</label><input id="spinparts" type="checkbox" checked></div>
+    <p class="hint">Klik of beweeg over een onderdeel voor info.</p>
+    <div id="partinfo" class="card hidden"></div>
+    <table id="partlist"><thead><tr><th>onderdeel</th><th>materiaal</th><th>g</th></tr></thead><tbody></tbody></table>
+  </div>
+
+  <div class="pane hidden" id="pane-mold">
+    <p>Banden worden met een spuit <b>rechtstreeks op de velg gegoten</b>. De zwaluwstaart-rib met 12 nokken houdt de siliconen vast.</p>
+    <div class="row btns"><button id="fill" class="primary">▶ Vullen</button><button id="openmold">Mal openen</button></div>
+    <div class="row"><label>Deksel</label><div class="rng"><input id="lid" type="range" min="0" max="1" step="0.01" value="0"><output id="lido">dicht</output></div></div>
+    <div class="row"><label>Vulgraad</label><div class="rng"><input id="fillr" type="range" min="0" max="1" step="0.01" value="0"><output id="fillo">0 %</output></div></div>
+    <ol class="steps">
+      <li>Mal dun invetten met vaseline (niet de velg).</li>
+      <li>Velg met buitenkant naar beneden over de centreerring.</li>
+      <li>Deksel erop, 5× M3 aanspannen.</li>
+      <li>≈ 3 ml siliconen per band langzaam via de zij-ingang inspuiten.</li>
+      <li>Stoppen als siliconen in alle 4 ontluchtingen staat.</li>
+      <li>Laten uitharden, uitduwen met de as, aanspuiting wegsnijden.</li>
+    </ol>
+  </div>
+
+  <div class="pane hidden" id="pane-files">
+    <div id="filelist"></div>
+  </div>
+</aside>
+
+<canvas id="graph"></canvas>
+<div id="tip" class="hidden"></div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,248 @@
+{
+    "error_string": "Success.",
+    "layer_height": 0.11999999731779099,
+    "peak_rss_mb": 328.328125,
+    "plate_index": 0,
+    "return_code": 0,
+    "sliced_plates": [
+        {
+            "feature_type_times": {
+                "Bottom surface": 183.89227294921875,
+                "Bridge": 161.167724609375,
+                "Custom": 35.22056579589844,
+                "Gap infill": 555.3836669921875,
+                "Inner wall": 794.0612182617188,
+                "Internal solid infill": 502.0732116699219,
+                "Outer wall": 1438.0916748046875,
+                "Sparse infill": 208.46176147460938,
+                "Top surface": 148.1254425048828,
+                "Travel": 1276.203125,
+                "Undefined": 1260.893798828125
+            },
+            "filament_change_times": 0,
+            "filaments": [
+                {
+                    "filament_id": "GFA00",
+                    "id": 1,
+                    "main_used_g": 20.612749099731445,
+                    "total_used_g": 20.612749099731445
+                }
+            ],
+            "id": 1,
+            "layer_filament_change": 0,
+            "main_predication": 5267.89794921875,
+            "obj_cached_cnt": 0,
+            "objects": [
+                {
+                    "bbox": {
+                        "depth": 36.94590377807617,
+                        "height": 10.0,
+                        "width": 36.94590377807617,
+                        "x": 144.37937927246094,
+                        "y": 148.47293090820313,
+                        "z": 0.0
+                    },
+                    "id": 239,
+                    "name": "rim_silicone.stl",
+                    "triangle_count": 4912
+                },
+                {
+                    "bbox": {
+                        "depth": 36.94590377807617,
+                        "height": 10.0,
+                        "width": 36.94590759277344,
+                        "x": 105.43348693847656,
+                        "y": 148.47293090820313,
+                        "z": 0.0
+                    },
+                    "id": 250,
+                    "name": "rim_silicone.stl",
+                    "triangle_count": 4912
+                },
+                {
+                    "bbox": {
+                        "depth": 36.94590759277344,
+                        "height": 10.0,
+                        "width": 36.94590377807617,
+                        "x": 144.37937927246094,
+                        "y": 109.52704620361328,
+                        "z": 0.0
+                    },
+                    "id": 261,
+                    "name": "rim_silicone.stl",
+                    "triangle_count": 4912
+                },
+                {
+                    "bbox": {
+                        "depth": 36.94590759277344,
+                        "height": 10.0,
+                        "width": 36.94590759277344,
+                        "x": 105.4334945678711,
+                        "y": 109.52704620361328,
+                        "z": 0.0
+                    },
+                    "id": 272,
+                    "name": "rim_silicone.stl",
+                    "triangle_count": 4912
+                },
+                {
+                    "bbox": {
+                        "depth": 36.94590377807617,
+                        "height": 10.0,
+                        "width": 36.94590377807617,
+                        "x": 144.37937927246094,
+                        "y": 70.58116912841797,
+                        "z": 0.0
+                    },
+                    "id": 283,
+                    "name": "rim_silicone.stl",
+                    "triangle_count": 4912
+                },
+                {
+                    "bbox": {
+                        "depth": 25.027437210083008,
+                        "height": 6.0,
+                        "width": 24.995698928833008,
+                        "x": 79.95455932617188,
+                        "y": 161.90512084960938,
+                        "z": 0.0
+                    },
+                    "id": 294,
+                    "name": "spur_42T_m05.stl",
+                    "triangle_count": 8424
+                },
+                {
+                    "bbox": {
+                        "depth": 25.02743148803711,
+                        "height": 6.0,
+                        "width": 24.995698928833008,
+                        "x": 79.95455932617188,
+                        "y": 137.90516662597656,
+                        "z": 0.0
+                    },
+                    "id": 305,
+                    "name": "spur_42T_m05.stl",
+                    "triangle_count": 8424
+                },
+                {
+                    "bbox": {
+                        "depth": 6.318965911865234,
+                        "height": 1.0,
+                        "width": 6.318968296051025,
+                        "x": 73.91353607177734,
+                        "y": 179.8610382080078,
+                        "z": 0.0
+                    },
+                    "id": 316,
+                    "name": "spacer.stl",
+                    "triangle_count": 672
+                },
+                {
+                    "bbox": {
+                        "depth": 6.318966388702393,
+                        "height": 1.0,
+                        "width": 6.318968296051025,
+                        "x": 73.91353607177734,
+                        "y": 173.06443786621094,
+                        "z": 0.0
+                    },
+                    "id": 327,
+                    "name": "spacer.stl",
+                    "triangle_count": 672
+                },
+                {
+                    "bbox": {
+                        "depth": 6.318966865539551,
+                        "height": 1.0,
+                        "width": 6.318968296051025,
+                        "x": 73.91353607177734,
+                        "y": 166.26783752441406,
+                        "z": 0.0
+                    },
+                    "id": 338,
+                    "name": "spacer.stl",
+                    "triangle_count": 672
+                },
+                {
+                    "bbox": {
+                        "depth": 6.318966865539551,
+                        "height": 1.0,
+                        "width": 6.318968296051025,
+                        "x": 73.91353607177734,
+                        "y": 159.4712371826172,
+                        "z": 0.0
+                    },
+                    "id": 349,
+                    "name": "spacer.stl",
+                    "triangle_count": 672
+                },
+                {
+                    "bbox": {
+                        "depth": 6.318967342376709,
+                        "height": 1.0,
+                        "width": 6.318968296051025,
+                        "x": 73.91353607177734,
+                        "y": 152.6746368408203,
+                        "z": 0.0
+                    },
+                    "id": 360,
+                    "name": "spacer.stl",
+                    "triangle_count": 672
+                },
+                {
+                    "bbox": {
+                        "depth": 6.318971157073975,
+                        "height": 1.0,
+                        "width": 6.31897497177124,
+                        "x": 140.21987915039063,
+                        "y": 112.82610321044922,
+                        "z": 0.0
+                    },
+                    "id": 371,
+                    "name": "spacer.stl",
+                    "triangle_count": 672
+                }
+            ],
+            "times": {
+                "conflict_check_time": 44,
+                "detect_overhangs_time": 25,
+                "export_gcode_time": 1453,
+                "flush_plan_time": 0,
+                "generate_support_material_time": 139,
+                "infill_generate_time": 365,
+                "infill_time": 1461,
+                "ironing_time": 0,
+                "make_perimeters_time": 966,
+                "multifilament_segment_2d_time": 0,
+                "other_slice_time": 1,
+                "prepare_infill_time": 1096,
+                "region_split_time": 0,
+                "skirt_brim_time": 57,
+                "slice_layers_time": 161,
+                "sliced_time": 4371,
+                "sliced_time_with_cache": 1510,
+                "support_detect_time": 0,
+                "support_interface_time": 0,
+                "support_normal_generate_time": 0,
+                "support_toolpath_time": 0,
+                "support_tree_generate_time": 0,
+                "toolpath_time": 217,
+                "wall_time": 805,
+                "wipe_tower_time": 8
+            },
+            "total_predication": 5287.77880859375,
+            "triangle_count": 45440,
+            "warning_message": "It seems object rim_silicone.stl has floating regions. Please re-orient the object or enable support generation."
+        }
+    ],
+    "sparse_infill_density": 25.0,
+    "times": {
+        "export_3mf_time": 274,
+        "export_slicedata_time": 0,
+        "export_time": 504,
+        "import_time": 33,
+        "load_slicedata_time": 0,
+        "prepare_time": 437
+    },
+    "wall_loops": 3
+}

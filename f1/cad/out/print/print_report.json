@@ -1,0 +1,56 @@
+{
+ "1_body_main_ASA": {
+  "material": "ASA",
+  "profile": "support",
+  "time": "9h 36m 40s",
+  "grams": 126.13
+ },
+ "2_body_nose_ASA": {
+  "material": "ASA",
+  "profile": "support",
+  "time": "7h 47m 45s",
+  "grams": 101.39
+ },
+ "3_canopy_smoke_PETG": {
+  "material": "PETG",
+  "profile": "support",
+  "time": "1h 6m 2s",
+  "grams": 17.16
+ },
+ "4_chassis_parts_ASA": {
+  "material": "ASA",
+  "profile": "support",
+  "time": "2h 37m 4s",
+  "grams": 44.15
+ },
+ "5_aero_black_ASA": {
+  "material": "ASA",
+  "profile": "support",
+  "time": "3h 34m 1s",
+  "grams": 51.96
+ },
+ "6_wheels_PLA": {
+  "material": "PLA",
+  "profile": "fine",
+  "time": "2h 10m 50s",
+  "grams": 35.33
+ },
+ "7a_tyre_mold_bottom_cores_PLA": {
+  "material": "PLA",
+  "profile": "std",
+  "time": "2h 36m 31s",
+  "grams": 122.22
+ },
+ "7b_tyre_mold_top_PLA": {
+  "material": "PLA",
+  "profile": "std",
+  "time": "1h 57m 5s",
+  "grams": 89.69
+ },
+ "8_option_TPU_tyres": {
+  "material": "TPU",
+  "profile": "std",
+  "time": "2h 26m 44s",
+  "grams": 33.66
+ }
+}

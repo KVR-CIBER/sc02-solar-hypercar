@@ -1,0 +1,78 @@
+{
+ "1_car_ASA": {
+  "material": "ASA",
+  "profile": "std",
+  "parts": [
+   "chassis",
+   "front_carrier",
+   "motor_clamp",
+   "panel_frame",
+   "bearing_cap",
+   "bearing_cap",
+   "bearing_cap",
+   "bearing_cap"
+  ],
+  "time": "2h 35m 47s",
+  "grams": 55.08,
+  "three_mf": true
+ },
+ "2_wheels_PLA": {
+  "material": "PLA",
+  "profile": "fine",
+  "parts": [
+   "rim_silicone",
+   "rim_silicone",
+   "rim_silicone",
+   "rim_silicone",
+   "rim_silicone",
+   "spur_42T_m05",
+   "spur_42T_m05",
+   "spacer",
+   "spacer",
+   "spacer",
+   "spacer",
+   "spacer",
+   "spacer"
+  ],
+  "time": "1h 28m 7s",
+  "grams": 20.61,
+  "three_mf": true
+ },
+ "3_tyre_mold_PLA": {
+  "material": "PLA",
+  "profile": "std",
+  "parts": [
+   "mold_base",
+   "mold_lid"
+  ],
+  "time": "2h 38m 19s",
+  "grams": 120.76,
+  "three_mf": true
+ },
+ "4_option_TPU_tyres": {
+  "material": "TPU",
+  "profile": "std",
+  "parts": [
+   "tyre_tpu",
+   "tyre_tpu",
+   "tyre_tpu",
+   "tyre_tpu"
+  ],
+  "time": "1h 0m 24s",
+  "grams": 14.96,
+  "three_mf": true
+ },
+ "5_option_rims_for_TPU_PLA": {
+  "material": "PLA",
+  "profile": "fine",
+  "parts": [
+   "rim_tpu",
+   "rim_tpu",
+   "rim_tpu",
+   "rim_tpu"
+  ],
+  "time": "43m 32s",
+  "grams": 13.0,
+  "three_mf": true
+ }
+}

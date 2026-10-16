@@ -1,0 +1,21 @@
+# python / build
+.venv/
+__pycache__/
+*.pyc
+node_modules/
+.DS_Store
+# generated (rebuild with f1/cad/build.py + slicer/slice_all.py + tools/build_files_v2.py)
+f1/files/
+web/files/
+f1/cad/out/print/_*/
+f1/web/tmp/
+# too big for GitHub (>100 MB) – 1080p versions are included
+*_4k.mp4
+# half-finished packing experiment
+f1/PRINT_DIT/
+
+# local secrets (see secrets.example.h)
+secrets.h
+
+# reglement (auteursrecht organisatie) – niet publiceren
+docs/reglement*.pdf

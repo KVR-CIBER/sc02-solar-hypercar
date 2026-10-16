@@ -1,0 +1,131 @@
+{
+    "error_string": "Success.",
+    "layer_height": 0.11999999731779099,
+    "peak_rss_mb": 290.140625,
+    "plate_index": 0,
+    "return_code": 0,
+    "sliced_plates": [
+        {
+            "feature_type_times": {
+                "Bottom surface": 139.38461303710938,
+                "Bridge": 130.4175567626953,
+                "Custom": 35.22489547729492,
+                "Gap infill": 273.26861572265625,
+                "Inner wall": 292.2073669433594,
+                "Internal solid infill": 374.29461669921875,
+                "Outer wall": 660.0416259765625,
+                "Sparse infill": 127.37240600585938,
+                "Top surface": 100.48041534423828,
+                "Travel": 494.6156311035156,
+                "Undefined": 479.24847412109375
+            },
+            "filament_change_times": 0,
+            "filaments": [
+                {
+                    "filament_id": "GFA00",
+                    "id": 1,
+                    "main_used_g": 13.003304481506348,
+                    "total_used_g": 13.003304481506348
+                }
+            ],
+            "id": 1,
+            "layer_filament_change": 0,
+            "main_predication": 2592.193603515625,
+            "obj_cached_cnt": 0,
+            "objects": [
+                {
+                    "bbox": {
+                        "depth": 40.89662551879883,
+                        "height": 10.0,
+                        "width": 40.89662551879883,
+                        "x": 126.0394287109375,
+                        "y": 126.0394287109375,
+                        "z": 0.0
+                    },
+                    "id": 74,
+                    "name": "rim_tpu.stl",
+                    "triangle_count": 4048
+                },
+                {
+                    "bbox": {
+                        "depth": 40.89662551879883,
+                        "height": 10.0,
+                        "width": 40.896629333496094,
+                        "x": 89.06393432617188,
+                        "y": 126.0394287109375,
+                        "z": 0.0
+                    },
+                    "id": 85,
+                    "name": "rim_tpu.stl",
+                    "triangle_count": 4048
+                },
+                {
+                    "bbox": {
+                        "depth": 40.896629333496094,
+                        "height": 10.0,
+                        "width": 40.89662551879883,
+                        "x": 126.0394287109375,
+                        "y": 89.06393432617188,
+                        "z": 0.0
+                    },
+                    "id": 96,
+                    "name": "rim_tpu.stl",
+                    "triangle_count": 4048
+                },
+                {
+                    "bbox": {
+                        "depth": 40.89663314819336,
+                        "height": 10.0,
+                        "width": 40.89663314819336,
+                        "x": 89.0639419555664,
+                        "y": 89.0639419555664,
+                        "z": 0.0
+                    },
+                    "id": 107,
+                    "name": "rim_tpu.stl",
+                    "triangle_count": 4048
+                }
+            ],
+            "times": {
+                "conflict_check_time": 16,
+                "detect_overhangs_time": 12,
+                "export_gcode_time": 664,
+                "flush_plan_time": 0,
+                "generate_support_material_time": 67,
+                "infill_generate_time": 277,
+                "infill_time": 1087,
+                "ironing_time": 0,
+                "make_perimeters_time": 448,
+                "multifilament_segment_2d_time": 0,
+                "other_slice_time": 1,
+                "prepare_infill_time": 810,
+                "region_split_time": 0,
+                "skirt_brim_time": 27,
+                "slice_layers_time": 60,
+                "sliced_time": 2387,
+                "sliced_time_with_cache": 691,
+                "support_detect_time": 0,
+                "support_interface_time": 0,
+                "support_normal_generate_time": 0,
+                "support_toolpath_time": 0,
+                "support_tree_generate_time": 0,
+                "toolpath_time": 63,
+                "wall_time": 388,
+                "wipe_tower_time": 2
+            },
+            "total_predication": 2612.020751953125,
+            "triangle_count": 16192,
+            "warning_message": ""
+        }
+    ],
+    "sparse_infill_density": 25.0,
+    "times": {
+        "export_3mf_time": 144,
+        "export_slicedata_time": 0,
+        "export_time": 370,
+        "import_time": 11,
+        "load_slicedata_time": 0,
+        "prepare_time": 52
+    },
+    "wall_loops": 3
+}

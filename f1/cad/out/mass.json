@@ -1,0 +1,32 @@
+{
+ "parts": {
+  "body (ASA)": 128.8,
+  "canopy (smoke PETG)": 18.5,
+  "rear_module": 16.5,
+  "front_module": 8.7,
+  "splitter": 14.9,
+  "rear_wing": 17.9,
+  "diffuser": 7.9,
+  "battery_tray": 5.8,
+  "pi_tray": 1.1,
+  "esp_bridge": 4.5,
+  "power_tray_L": 1.6,
+  "power_tray_R": 1.6,
+  "uprights+clips+small": 17.4,
+  "floor (2 mm acrylic)": 105.8,
+  "4 rims (PLA)": 28.3,
+  "4 tyres (PU/silicone)": 48.3,
+  "kit panel": 25,
+  "Pi 4": 46,
+  "ESP32-S3": 10,
+  "servo MG90S": 14,
+  "2x 130 motor": 38,
+  "battery 3S 1300 / 4xAA+holders": 115,
+  "buck-boost + INA226 + 2x DRV8874": 12,
+  "wires, screws, bearings, axles, magnets": 28
+ },
+ "total_g": 715.5,
+ "length": 379.0,
+ "width": 170.0,
+ "floor_holes": 41
+}

@@ -1,0 +1,42 @@
+<!doctype html><html lang="nl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><meta name="theme-color" content="#07090d">
+<title>SC-02</title>
+<style>
+html,body{margin:0;height:100%;background:#07090d;color:#eef1f6;font:13px system-ui;overflow:hidden;touch-action:none;user-select:none}
+#hud{position:fixed;left:50%;top:14px;transform:translateX(-50%);text-align:center}
+#spd{font:600 64px/1 ui-monospace,Menlo,monospace;letter-spacing:-.03em} small{color:#8a93a3}
+.rows{display:grid;grid-template-columns:auto 120px 44px;gap:6px 10px;align-items:center;margin-top:10px;font:500 12px ui-monospace,Menlo,monospace}
+.b{height:4px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden}.b i{display:block;height:100%;width:0;background:linear-gradient(90deg,#ff6b3d,#ff2d3c)}
+svg{width:15px;height:15px;fill:none;stroke:#8a93a3;stroke-width:1.8;stroke-linecap:round}
+#steer{position:fixed;left:4vw;bottom:8vh;width:44vw;height:34vh;border-radius:22px;background:rgba(255,255,255,.04)}
+#knob{position:absolute;left:50%;top:50%;width:64px;height:64px;margin:-32px;border-radius:50%;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3)}
+#pedal{position:fixed;right:4vw;bottom:8vh;width:24vw;height:60vh;border-radius:22px;background:linear-gradient(#ff2d3c22,#ffffff08 50%,#3d7bff22)}
+#pk{position:absolute;left:8px;right:8px;height:6px;top:50%;border-radius:3px;background:#fff}
+#mode{position:fixed;right:4vw;top:14px;padding:10px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:#eef1f6;font:600 12px system-ui}
+#link{position:fixed;left:4vw;top:18px;width:10px;height:10px;border-radius:50%;background:#ff3b30}
+</style></head><body>
+<div id="link"></div><button id="mode">DRIVE</button>
+<div id="hud"><div><span id="spd">0</span> <small>km/h</small></div>
+<div class="rows">
+<svg viewBox="0 0 24 24"><rect x="3" y="7" width="16" height="10" rx="2"/><path d="M21 10v4"/></svg><div class="b"><i id="bt"></i></div><span id="tv">0.0V</span>
+<svg viewBox="0 0 24 24"><path d="M4 12h3l2-5 4 10 2-5h5"/></svg><div class="b"><i id="bm"></i></div><span id="tm">0.0</span>
+<svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/></svg><div class="b"><i id="bp"></i></div><span id="tp">0.0</span>
+<svg viewBox="0 0 24 24"><path d="M5 12a7 7 0 0 1 14 0"/></svg><div class="b"><i id="be"></i></div><span id="te">0.0</span>
+</div></div>
+<div id="steer"><div id="knob"></div></div><div id="pedal"><div id="pk"></div></div>
+<script>
+const $=id=>document.getElementById(id);let ws,steer=0,pedal=0;
+function conn(){ws=new WebSocket(`ws://${location.host}/ws`);ws.onopen=()=>$('link').style.background='#33d17a';
+ ws.onclose=()=>{$('link').style.background='#ff3b30';setTimeout(conn,1000)};
+ ws.onmessage=e=>{const d=JSON.parse(e.data);$('spd').textContent=Math.round(d.spd*3.6);$('tv').textContent=d.v.toFixed(1)+'V';
+  $('tm').textContent=d.pm.toFixed(1);$('tp').textContent=d.pi.toFixed(1);$('te').textContent=d.esp.toFixed(1);$('mode').textContent=d.mode;
+  $('bt').style.width=Math.max(0,Math.min(100,(d.v-9.6)/(12.6-9.6)*100))+'%';$('bm').style.width=Math.min(100,d.pm/30*100)+'%';
+  $('bp').style.width=Math.min(100,d.pi/6*100)+'%';$('be').style.width=Math.min(100,d.esp/2*100)+'%'}}
+conn();
+const area=(el,fn,end)=>{const h=e=>{const r=el.getBoundingClientRect();for(const t of e.touches){if(t.clientX>=r.left-30&&t.clientX<=r.right+30){fn(t,r)}}e.preventDefault()};
+ el.addEventListener('touchstart',h,{passive:false});el.addEventListener('touchmove',h,{passive:false});el.addEventListener('touchend',end)};
+area($('steer'),(t,r)=>{steer=Math.max(-1,Math.min(1,((t.clientX-r.left)/r.width)*2-1));$('knob').style.left=(steer+1)*50+'%'},()=>{steer=0;$('knob').style.left='50%'});
+area($('pedal'),(t,r)=>{pedal=Math.max(-1,Math.min(1,1-((t.clientY-r.top)/r.height)*2));$('pk').style.top=(1-pedal)*50+'%'},()=>{pedal=0;$('pk').style.top='50%'});
+$('mode').onclick=()=>ws&&ws.send(JSON.stringify({cmd:'mode'}));
+setInterval(()=>{if(ws&&ws.readyState===1)ws.send(JSON.stringify({thr:pedal>0?pedal:(pedal<-0.1?-0.6*Math.abs(pedal):0),brake:pedal<0?-pedal:0,steer:-steer}))},40);
+</script></body></html>

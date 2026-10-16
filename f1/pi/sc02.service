@@ -1,0 +1,10 @@
+[Unit]
+Description=SC-02 on-board controller (gamepad + phone + ESP32-S3 link)
+After=network-online.target bluetooth.target
+[Service]
+ExecStart=/usr/bin/python3 /opt/sc02/sc02_pi.py
+WorkingDirectory=/opt/sc02
+Restart=always
+User=root
+[Install]
+WantedBy=multi-user.target

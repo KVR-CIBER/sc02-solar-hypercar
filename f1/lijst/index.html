@@ -1,0 +1,104 @@
+<!doctype html><html lang="nl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#07090d">
+<title>SC-02 · boodschappen</title>
+<style>
+:root{--ink:#eef1f6;--mut:#8a93a3;--line:rgba(255,255,255,.08);--acc:#ff2d3c;--ok:#33d17a}
+*{box-sizing:border-box}html,body{margin:0;background:#07090d;color:var(--ink);font:15px/1.4 system-ui,-apple-system,sans-serif}
+main{max-width:720px;margin:auto;padding:28px 16px 80px}
+h1{font:200 28px system-ui;letter-spacing:.3em;margin:0}h1 b{color:var(--acc);font-weight:400}
+.sub{color:var(--mut);margin:6px 0 18px}
+.tot{position:sticky;top:0;z-index:2;display:flex;gap:10px;align-items:center;justify-content:space-between;padding:12px 14px;margin:0 -4px 8px;
+  background:rgba(7,9,13,.88);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);font:600 15px ui-monospace,Menlo,monospace}
+.bar{flex:1;height:4px;background:var(--line);border-radius:2px;overflow:hidden}.bar i{display:block;height:100%;background:var(--ok);width:0}
+h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut);margin:26px 0 8px;font-weight:600;display:flex;justify-content:space-between}
+label{display:grid;grid-template-columns:26px 1fr auto;gap:10px;align-items:start;padding:12px;margin:6px 0;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.03);cursor:pointer}
+label:has(input:checked){opacity:.45}label:has(input:checked) .n{text-decoration:line-through}
+input{width:20px;height:20px;accent-color:var(--ok);margin:1px 0 0}
+.n{font-weight:600}.q{color:var(--mut);font-weight:400}.d{color:var(--mut);font-size:13px;margin-top:3px}.s{color:#b9a3ff;font-size:12.5px;margin-top:3px}
+.p{font:600 14px ui-monospace,Menlo,monospace;white-space:nowrap}
+.have label{opacity:.6}
+.note{color:var(--mut);font-size:13px;border-left:2px solid var(--acc);padding:6px 10px;margin:18px 0}
+a{color:#9ec5ff}
+.all{width:100%;margin:6px 0 4px;padding:14px;border:0;border-radius:12px;background:#ffd814;color:#111;font:700 16px system-ui;cursor:pointer}
+.hint{color:var(--mut);font-size:12.5px;margin:0 0 6px;text-align:center}
+.go{display:inline-block;margin-top:8px;padding:7px 12px;border-radius:9px;background:#ffd814;color:#111;font-weight:600;font-size:13px;text-decoration:none}
+</style></head><body><main>
+<h1>SC<b>·</b>02</h1><div class="sub">Boodschappenlijst · open elk product, leg in je winkelwagen en vink af</div>
+<div class="tot"><span id="cnt">0/0</span><div class="bar"><i id="bar"></i></div><span id="sum">€0</span></div>
+<button id="all" class="all">Open alles (elk in een tabblad)</button>
+<div class="hint">Elke druk opent het volgende product in een nieuw tabblad. Leg het in je winkelwagen, kom terug en druk opnieuw.</div>
+<div id="list"></div>
+<div class="note">AliExpress-prijzen zijn richtprijzen (incl. gratis verzending bij “Choice”-producten, vaak vanaf ± €10 totaal). Kies bij elke zoekopdracht een aanbieder met veel verkochte stuks en goede score. Levering ± 1–3 weken.</div>
+<p><a href="../">← simulatie</a> · <a href="../files/">downloads</a></p>
+</main>
+<script>
+const A = "https://www.amazon.com.be/dp/";
+const S = (q) => "https://www.amazon.com.be/s?k=" + encodeURIComponent(q);
+const X = (q) => "https://www.aliexpress.com/w/wholesale-" + q.trim().replace(/\s+/g, "-") + ".html";
+const L = [
+ ["AliExpress · aandrijving & sturen", [
+  ["Tamiya Hyper-Dash 3 motor (15477), 2 st.", 1, 16, "de goede racemotor · let op: echte Tamiya, artikel 15477, as 2 mm", X("Tamiya Hyper Dash 3 motor 15477")],
+  ["DRV8871 motordriver, 2 st. (1 per motor)", 1, 5, "kan de stroom van de Tamiya aan (begrenst zelf op 3,6 A)", X("DRV8871 motor driver module")],
+  ["Servo MG90S metalen tandwielen", 1, 2.5, "sturen", X("MG90S metal gear servo")],
+  ["Lagers 683ZZ, 10 st.", 1, 3, "3×7×3 mm", X("683ZZ bearing 3x7x3")],
+  ["Inox staafjes 3 mm × 200–300 mm, 5 st.", 1, 3, "achteras 186 mm + asjes voorwielen 16 mm", X("304 stainless steel rod 3mm 300mm")],
+ ]],
+ ["AliExpress · sensoren & magneten", [
+  ["Hallsensor A3144 (los), 10 st.", 1, 1, "snelheid meten", X("A3144 hall sensor TO-92")],
+  ["Neodymium 2 × 1 mm, 50 st.", 1, 1.5, "in het tandwiel", X("neodymium magnet 2x1mm")],
+  ["Neodymium 6 × 3 mm, 20 st.", 1, 2, "carrosserie vastklikken", X("neodymium magnet 6x3mm")],
+ ]],
+ ["AliExpress · stroom & kabels", [
+  ["XT60-stekkers, 5 paar", 1, 2, "batterij-aansluiting = aan/uit", X("XT60 connector male female 5 pairs")],
+  ["Step-down LM2596 (of MP1584)", 1, 1.5, "5 V voor Pi + servo + ESP · eerst op 5,1 V zetten!", X("LM2596 step down module")],
+  ["Zekeringhouder + 10 A steekzekering", 1, 2, "kortsluitbeveiliging", X("inline blade fuse holder 10A")],
+  ["Dupont-kabeltjes vrouw-vrouw, 40 st.", 1, 1.5, "ESP ↔ Pi, sensoren", X("dupont jumper wire female female 20cm 40pcs")],
+ ]],
+ ["AliExpress · extra's", [
+  ["Zonnepaneel 1 W 5 V, 110 × 60 mm", 1, 2.89, "dwars op het dek · meet de dikte en zeg het me", X("solar panel 1W 5V 110x60mm")],
+  ["Camera OV5647 voor Raspberry Pi + lintkabel 30 cm", 1, 5, "beeld via wifi naar je gsm", X("OV5647 raspberry pi camera 30cm cable")],
+ ]],
+ ["Amazon.com.be (snel + batterij)", [
+  ["LiPo Tattu 3S 1300 mAh 75C XT60", 1, 21.99, "batterijen via AliExpress zijn traag/lastig, deze dus via Amazon", A + "B016Q3QQ3O"],
+ ]],
+ ["Optioneel", [
+  ["INA226-stroommeter", 1, 3, "live verbruik op je gsm", X("INA226 module")],
+  ["Zwart plexi 2 mm (als je er geen hebt)", 1, 15, "min. 40 × 20 cm", A + "B09N42XJYV"],
+ ]],
+];
+const HAVE = [["Draad 20/26 AWG, M2/M3-schroeven, schakelaars, krimpkous, kabelbinders, TPU"], ["Tandwielen: zelf printen (prototype) en daarna CNC in POM"], ["Raspberry Pi 4, ESP32-S3, Recon-controller, P1S"], ["LiPo-lader (van je Absima-batterij)"]];
+const KEY = "sc02-shop-v5";
+let st = {}; try { st = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) {}
+const box = document.getElementById("list");
+let html = "";
+L.forEach(([cat, items], ci) => {
+  const sub = items.reduce((s, it) => s + it[1] * it[2], 0);
+  html += `<h2><span>${cat}</span><span>€${sub.toFixed(0)}</span></h2>`;
+  items.forEach((it, ii) => {
+    const id = ci + "-" + ii, [n, q, p, d, s] = it;
+    html += `<label><input type="checkbox" data-id="${id}" data-p="${(q * p).toFixed(2)}" ${st[id] ? "checked" : ""}>
+      <div><div class="n">${n}</div>${d ? `<div class="d">${d}</div>` : ""}${s ? `<a class="go" href="${s}" target="_blank" rel="noopener">${s.includes("aliexpress") ? "Zoek op AliExpress →" : "Open op Amazon →"}</a>` : ""}</div>
+      <div class="p">€${(q * p).toFixed(2)}</div></label>`;
+  });
+});
+html += `<h2><span>Heb je al</span><span></span></h2><div class="have">` + HAVE.map(([n]) => `<label><input type="checkbox" checked disabled><div class="n">${n}</div><div></div></label>`).join("") + "</div>";
+box.innerHTML = html;
+function upd() {
+  const all = [...box.querySelectorAll("input[data-id]")], done = all.filter((i) => i.checked);
+  const total = all.reduce((s, i) => s + +i.dataset.p, 0), left = all.filter((i) => !i.checked).reduce((s, i) => s + +i.dataset.p, 0);
+  document.getElementById("cnt").textContent = `${done.length}/${all.length}`;
+  document.getElementById("sum").textContent = `nog €${left.toFixed(0)} / €${total.toFixed(0)}`;
+  document.getElementById("bar").style.width = (done.length / all.length) * 100 + "%";
+}
+box.addEventListener("change", (e) => { const i = e.target; if (!i.dataset.id) return; st[i.dataset.id] = i.checked; try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} upd(); });
+upd();
+const allBtn = document.getElementById("all");
+function nextLinks() { return [...box.querySelectorAll("label")].filter((l) => { const i = l.querySelector("input[data-id]"); return i && !i.checked; })
+  .map((l) => ({ a: l.querySelector("a.go"), n: l.querySelector(".n").textContent })).filter((x) => x.a); }
+let pos = 0;
+function label() { const L2 = nextLinks(); if (!L2.length) { allBtn.textContent = "Alles afgevinkt ✓"; return; }
+  pos = pos % L2.length; allBtn.textContent = `Open volgende (${pos + 1}/${L2.length}): ${L2[pos].n}`; }
+allBtn.addEventListener("click", () => { const L2 = nextLinks(); if (!L2.length) return; window.open(L2[pos % L2.length].a.href, "_blank", "noopener"); pos++; label(); });
+box.addEventListener("change", () => { pos = 0; label(); });
+label();
+</script></body></html>

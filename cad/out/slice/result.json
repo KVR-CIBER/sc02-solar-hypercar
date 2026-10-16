@@ -1,0 +1,17 @@
+{
+    "error_string": "Filaments are not compatible with the plate type. Please verify the slicing of all plates in Bambu Studio before uploading.",
+    "layer_height": 0.20000000298023224,
+    "peak_rss_mb": 50.75,
+    "plate_index": 1,
+    "return_code": -61,
+    "sparse_infill_density": 20.0,
+    "times": {
+        "export_3mf_time": 0,
+        "export_slicedata_time": 0,
+        "export_time": 605001258597575788,
+        "import_time": 5,
+        "load_slicedata_time": 0,
+        "prepare_time": 12
+    },
+    "wall_loops": 3
+}

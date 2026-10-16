@@ -1,0 +1,184 @@
+{
+    "error_string": "Success.",
+    "layer_height": 0.20000000298023224,
+    "peak_rss_mb": 325.796875,
+    "plate_index": 0,
+    "return_code": 0,
+    "sliced_plates": [
+        {
+            "feature_type_times": {
+                "Bottom surface": 693.4011840820313,
+                "Bridge": 83.29755401611328,
+                "Custom": 35.19450378417969,
+                "Gap infill": 618.9308471679688,
+                "Inner wall": 1782.5438232421875,
+                "Internal solid infill": 1596.233642578125,
+                "Outer wall": 1830.4298095703125,
+                "Overhang wall": 3.494893789291382,
+                "Sparse infill": 141.0609893798828,
+                "Top surface": 710.1445922851563,
+                "Travel": 1868.5072021484375,
+                "Undefined": 1853.172119140625
+            },
+            "filament_change_times": 0,
+            "filaments": [
+                {
+                    "filament_id": "GFB01",
+                    "id": 1,
+                    "main_used_g": 55.08261489868164,
+                    "total_used_g": 55.08261489868164
+                }
+            ],
+            "id": 1,
+            "layer_filament_change": 0,
+            "main_predication": 9327.4755859375,
+            "obj_cached_cnt": 0,
+            "objects": [
+                {
+                    "bbox": {
+                        "depth": 109.0,
+                        "height": 31.5,
+                        "width": 215.0,
+                        "x": 20.500009536743164,
+                        "y": 135.94825744628906,
+                        "z": 0.0
+                    },
+                    "id": 146,
+                    "name": "chassis.stl",
+                    "triangle_count": 12952
+                },
+                {
+                    "bbox": {
+                        "depth": 24.499998092651367,
+                        "height": 19.399999618530273,
+                        "width": 109.0,
+                        "x": 126.5,
+                        "y": 109.44827270507813,
+                        "z": 0.0
+                    },
+                    "id": 157,
+                    "name": "front_carrier.stl",
+                    "triangle_count": 3542
+                },
+                {
+                    "bbox": {
+                        "depth": 96.39655303955078,
+                        "height": 6.400001525878906,
+                        "width": 106.39655303955078,
+                        "x": 129.10345458984375,
+                        "y": 11.051733016967773,
+                        "z": 0.0
+                    },
+                    "id": 179,
+                    "name": "panel_frame.stl",
+                    "triangle_count": 2768
+                },
+                {
+                    "bbox": {
+                        "depth": 52.560001373291016,
+                        "height": 2.5999984741210938,
+                        "width": 19.200002670288086,
+                        "x": 105.30001831054688,
+                        "y": 81.38826751708984,
+                        "z": 0.0
+                    },
+                    "id": 168,
+                    "name": "motor_clamp.stl",
+                    "triangle_count": 1424
+                },
+                {
+                    "bbox": {
+                        "depth": 20.0,
+                        "height": 8.13751220703125,
+                        "width": 4.000000953674316,
+                        "x": 99.300048828125,
+                        "y": 113.94828033447266,
+                        "z": 0.0
+                    },
+                    "id": 190,
+                    "name": "bearing_cap.stl",
+                    "triangle_count": 880
+                },
+                {
+                    "bbox": {
+                        "depth": 20.0,
+                        "height": 8.13751220703125,
+                        "width": 4.000002861022949,
+                        "x": 93.30008697509766,
+                        "y": 113.94828033447266,
+                        "z": 0.0
+                    },
+                    "id": 201,
+                    "name": "bearing_cap.stl",
+                    "triangle_count": 880
+                },
+                {
+                    "bbox": {
+                        "depth": 20.000001907348633,
+                        "height": 8.13751220703125,
+                        "width": 3.9999988079071045,
+                        "x": 99.30004119873047,
+                        "y": 91.94831848144531,
+                        "z": 0.0
+                    },
+                    "id": 212,
+                    "name": "bearing_cap.stl",
+                    "triangle_count": 880
+                },
+                {
+                    "bbox": {
+                        "depth": 20.0,
+                        "height": 8.13751220703125,
+                        "width": 3.999997138977051,
+                        "x": 87.30013275146484,
+                        "y": 113.94828033447266,
+                        "z": 0.0
+                    },
+                    "id": 223,
+                    "name": "bearing_cap.stl",
+                    "triangle_count": 880
+                }
+            ],
+            "times": {
+                "conflict_check_time": 45,
+                "detect_overhangs_time": 17,
+                "export_gcode_time": 976,
+                "flush_plan_time": 0,
+                "generate_support_material_time": 133,
+                "infill_generate_time": 250,
+                "infill_time": 480,
+                "ironing_time": 0,
+                "make_perimeters_time": 627,
+                "multifilament_segment_2d_time": 0,
+                "other_slice_time": 3,
+                "prepare_infill_time": 229,
+                "region_split_time": 0,
+                "skirt_brim_time": 24,
+                "slice_layers_time": 95,
+                "sliced_time": 2368,
+                "sliced_time_with_cache": 1000,
+                "support_detect_time": 0,
+                "support_interface_time": 0,
+                "support_normal_generate_time": 0,
+                "support_toolpath_time": 0,
+                "support_tree_generate_time": 0,
+                "toolpath_time": 57,
+                "wall_time": 532,
+                "wipe_tower_time": 5
+            },
+            "total_predication": 9347.3046875,
+            "triangle_count": 24206,
+            "warning_message": ""
+        }
+    ],
+    "sparse_infill_density": 20.0,
+    "times": {
+        "export_3mf_time": 298,
+        "export_slicedata_time": 0,
+        "export_time": 541,
+        "import_time": 13,
+        "load_slicedata_time": 0,
+        "prepare_time": 61
+    },
+    "wall_loops": 3
+}

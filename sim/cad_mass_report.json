@@ -1,0 +1,101 @@
+{
+ "items": [
+  {
+   "part": "chassis (ASA)",
+   "mass_g": 39.9,
+   "x_mm": 59.4
+  },
+  {
+   "part": "front carrier (ASA)",
+   "mass_g": 6.3,
+   "x_mm": 170.7
+  },
+  {
+   "part": "motor clamp (ASA)",
+   "mass_g": 2.1,
+   "x_mm": 0.0
+  },
+  {
+   "part": "panel frame (ASA)",
+   "mass_g": 6.7,
+   "x_mm": 57.3
+  },
+  {
+   "part": "spur gear (PLA)",
+   "mass_g": 1.3,
+   "x_mm": 0.0
+  },
+  {
+   "part": "4x bearing cap (ASA)",
+   "mass_g": 1.1,
+   "x_mm": 85.0
+  },
+  {
+   "part": "2x rear wheel (rim+silicone)",
+   "mass_g": 13.7,
+   "x_mm": 0.0
+  },
+  {
+   "part": "2x front wheel (rim+silicone)",
+   "mass_g": 13.7,
+   "x_mm": 170.0
+  },
+  {
+   "part": "4x AA NiMH 2000 mAh",
+   "mass_g": 108.0,
+   "x_mm": 55.0
+  },
+  {
+   "part": "2x battery holder",
+   "mass_g": 16.0,
+   "x_mm": 55.0
+  },
+  {
+   "part": "solar panel (kit)",
+   "mass_g": 25.0,
+   "x_mm": 57.0
+  },
+  {
+   "part": "2x 130 motor",
+   "mass_g": 38.0,
+   "x_mm": 0.0
+  },
+  {
+   "part": "2x axle, 3 mm carbon rod x 132",
+   "mass_g": 3.0,
+   "x_mm": 85.0
+  },
+  {
+   "part": "4x 683ZZ bearing",
+   "mass_g": 2.4,
+   "x_mm": 85.0
+  },
+  {
+   "part": "ESP32-S3 + buck-boost",
+   "mass_g": 14.0,
+   "x_mm": 102.0
+  },
+  {
+   "part": "MOSFET module, fuse, switch, wires",
+   "mass_g": 14.0,
+   "x_mm": 124.0
+  },
+  {
+   "part": "magnets, hall sensor, screws",
+   "mass_g": 5.0,
+   "x_mm": 100.0
+  }
+ ],
+ "total_g": 310.2,
+ "x_cg_mm": 60.0,
+ "rear_fraction": 0.647,
+ "overall_width_mm": 131.0,
+ "overall_length_mm": 215.0,
+ "spur": {
+  "z": 42,
+  "od": 22.0,
+  "clearance_mm": 9.0
+ },
+ "centre_distance": 12.58,
+ "silicone_ml_per_tyre": 2.95
+}

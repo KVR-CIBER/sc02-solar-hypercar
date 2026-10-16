@@ -1,0 +1,10 @@
+{
+  "_info": "Estimates from datasheets and typical measurements. ke = V/(rad/s) = kt (Nm/A). R = winding+brush resistance (ohm). I0 = no-load current (A). J = rotor inertia (kg m^2). m = mass (kg). Measure your own motor (see docs/motor_measurement.md) and update.",
+  "kit_1200rpm": {"name": "Kit motor (1200 rpm, 0.2-0.4 A)", "ke": 0.0239, "R": 3.75, "I0": 0.12, "J": 1.0e-7, "m": 0.017, "price": 0.0, "pinion_bore": 2.0},
+  "fa130":       {"name": "FA-130 generic (3 V)",           "ke": 0.00273, "R": 1.30, "I0": 0.18, "J": 1.0e-7, "m": 0.018, "price": 1.5, "pinion_bore": 2.0},
+  "tamiya_tt2":  {"name": "Tamiya Torque-Tuned 2",           "ke": 0.00215, "R": 0.85, "I0": 0.40, "J": 1.1e-7, "m": 0.019, "price": 7.0, "pinion_bore": 2.0},
+  "tamiya_ad2":  {"name": "Tamiya Atomic-Tuned 2",           "ke": 0.00199, "R": 0.75, "I0": 0.45, "J": 1.1e-7, "m": 0.019, "price": 7.0, "pinion_bore": 2.0},
+  "tamiya_hd3":  {"name": "Tamiya Hyper-Dash 3",             "ke": 0.00148, "R": 0.50, "I0": 0.60, "J": 1.1e-7, "m": 0.019, "price": 9.0, "pinion_bore": 2.0},
+  "re280_6v":    {"name": "RE-280 (6 V)",                    "ke": 0.00520, "R": 1.00, "I0": 0.25, "J": 3.0e-7, "m": 0.040, "price": 3.0, "pinion_bore": 2.0},
+  "rs380_7v2":   {"name": "RS-380 (7.2 V)",                  "ke": 0.00435, "R": 0.15, "I0": 0.80, "J": 6.0e-7, "m": 0.070, "price": 5.0, "pinion_bore": 2.3}
+}

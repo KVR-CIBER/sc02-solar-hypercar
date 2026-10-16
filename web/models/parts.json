@@ -1,0 +1,268 @@
+{
+ "units": "mm, x forward, y left, z up",
+ "wheelbase": 170.0,
+ "axle_z": 20.0,
+ "wheel_d": 40.0,
+ "track": 121.0,
+ "pinion_z": 8,
+ "spur_z": 42,
+ "centre_dist": 12.58,
+ "mold": {
+  "floor": 3.0,
+  "tyre_w": 10.0,
+  "cavities": [
+   [
+    -27.0,
+    -27.0
+   ],
+   [
+    -27.0,
+    27.0
+   ],
+   [
+    27.0,
+    -27.0
+   ],
+   [
+    27.0,
+    27.0
+   ]
+  ]
+ },
+ "parts": [
+  {
+   "name": "chassis",
+   "label": "Chassis",
+   "material": "ASA geprint",
+   "group": "static",
+   "mass_g": 39.9
+  },
+  {
+   "name": "front_carrier",
+   "label": "Voorasdrager (uitlijnbaar)",
+   "material": "ASA geprint",
+   "group": "static",
+   "mass_g": 6.3
+  },
+  {
+   "name": "motor_clamp",
+   "label": "Motorklem",
+   "material": "ASA geprint",
+   "group": "static",
+   "mass_g": 2.1
+  },
+  {
+   "name": "cap_RL",
+   "label": "Lagerkap",
+   "material": "ASA geprint",
+   "group": "static",
+   "mass_g": 0.3
+  },
+  {
+   "name": "cap_RR",
+   "label": "Lagerkap",
+   "material": "ASA geprint",
+   "group": "static",
+   "mass_g": 0.3
+  },
+  {
+   "name": "cap_FL",
+   "label": "Lagerkap",
+   "material": "ASA geprint",
+   "group": "static",
+   "mass_g": 0.3
+  },
+  {
+   "name": "cap_FR",
+   "label": "Lagerkap",
+   "material": "ASA geprint",
+   "group": "static",
+   "mass_g": 0.3
+  },
+  {
+   "name": "panel_frame",
+   "label": "Paneelframe",
+   "material": "ASA geprint",
+   "group": "static",
+   "mass_g": 6.7
+  },
+  {
+   "name": "panel",
+   "label": "Zonnepaneel (kit) 90\u00d780",
+   "material": "kit",
+   "group": "static",
+   "mass_g": 25
+  },
+  {
+   "name": "battery_holders",
+   "label": "Batterijhouders (kit)",
+   "material": "kit",
+   "group": "static",
+   "mass_g": 16
+  },
+  {
+   "name": "cells",
+   "label": "4\u00d7 AA NiMH 2000 mAh",
+   "material": "kit",
+   "group": "static",
+   "mass_g": 108
+  },
+  {
+   "name": "esp32s3",
+   "label": "ESP32-S3 + boost",
+   "material": "elektronica",
+   "group": "static",
+   "mass_g": 14
+  },
+  {
+   "name": "power",
+   "label": "MOSFET-module, zekering, schakelaar",
+   "material": "elektronica",
+   "group": "static",
+   "mass_g": 14
+  },
+  {
+   "name": "motor_F",
+   "label": "Tamiya Hyper-Dash 3",
+   "material": "gekocht",
+   "group": "static",
+   "mass_g": 19
+  },
+  {
+   "name": "pinion_F",
+   "label": "Pinion 8T m0.5 (messing)",
+   "material": "gekocht",
+   "group": "pinion@12.580",
+   "mass_g": 0.5
+  },
+  {
+   "name": "motor_B",
+   "label": "Tamiya Hyper-Dash 3",
+   "material": "gekocht",
+   "group": "static",
+   "mass_g": 19
+  },
+  {
+   "name": "pinion_B",
+   "label": "Pinion 8T m0.5 (messing)",
+   "material": "gekocht",
+   "group": "pinion@-12.580",
+   "mass_g": 0.5
+  },
+  {
+   "name": "spur",
+   "label": "Tandwiel 42T m0.5",
+   "material": "PLA geprint",
+   "group": "rear",
+   "mass_g": 1.3
+  },
+  {
+   "name": "axle_rear",
+   "label": "As \u00d83 carbon",
+   "material": "gekocht",
+   "group": "rear",
+   "mass_g": 1.5
+  },
+  {
+   "name": "bearing_rearL",
+   "label": "Kogellager 683ZZ",
+   "material": "gekocht",
+   "group": "static",
+   "mass_g": 0.6
+  },
+  {
+   "name": "rim_rearL",
+   "label": "Velg",
+   "material": "PLA geprint",
+   "group": "rear",
+   "mass_g": 3.9
+  },
+  {
+   "name": "tyre_rearL",
+   "label": "Siliconen band (gegoten)",
+   "material": "siliconen Shore 25",
+   "group": "rear",
+   "mass_g": 3.0
+  },
+  {
+   "name": "bearing_rearR",
+   "label": "Kogellager 683ZZ",
+   "material": "gekocht",
+   "group": "static",
+   "mass_g": 0.6
+  },
+  {
+   "name": "rim_rearR",
+   "label": "Velg",
+   "material": "PLA geprint",
+   "group": "rear",
+   "mass_g": 3.9
+  },
+  {
+   "name": "tyre_rearR",
+   "label": "Siliconen band (gegoten)",
+   "material": "siliconen Shore 25",
+   "group": "rear",
+   "mass_g": 3.0
+  },
+  {
+   "name": "axle_front",
+   "label": "As \u00d83 carbon",
+   "material": "gekocht",
+   "group": "front",
+   "mass_g": 1.5
+  },
+  {
+   "name": "bearing_frontL",
+   "label": "Kogellager 683ZZ",
+   "material": "gekocht",
+   "group": "static",
+   "mass_g": 0.6
+  },
+  {
+   "name": "rim_frontL",
+   "label": "Velg",
+   "material": "PLA geprint",
+   "group": "front",
+   "mass_g": 3.9
+  },
+  {
+   "name": "tyre_frontL",
+   "label": "Siliconen band (gegoten)",
+   "material": "siliconen Shore 25",
+   "group": "front",
+   "mass_g": 3.0
+  },
+  {
+   "name": "bearing_frontR",
+   "label": "Kogellager 683ZZ",
+   "material": "gekocht",
+   "group": "static",
+   "mass_g": 0.6
+  },
+  {
+   "name": "rim_frontR",
+   "label": "Velg",
+   "material": "PLA geprint",
+   "group": "front",
+   "mass_g": 3.9
+  },
+  {
+   "name": "tyre_frontR",
+   "label": "Siliconen band (gegoten)",
+   "material": "siliconen Shore 25",
+   "group": "front",
+   "mass_g": 3.0
+  }
+ ],
+ "mold_parts": [
+  {
+   "name": "mold_base",
+   "label": "Malbasis (4 holtes)"
+  },
+  {
+   "name": "mold_lid",
+   "label": "Deksel met ontluchting"
+  }
+ ]
+}

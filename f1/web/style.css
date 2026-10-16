@@ -1,0 +1,65 @@
+:root { --glass: rgba(10, 12, 17, 0.58); --line: rgba(255, 255, 255, 0.08); --ink: #eef1f6; --mut: #8a93a3; --acc: #ff2d3c;
+  font: 13px/1.2 "SF Pro Display", "Inter", system-ui, -apple-system, sans-serif; }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #07090d; color: var(--ink); user-select: none; touch-action: none; }
+#c { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; }
+.hidden { display: none !important; }
+#veil { position: fixed; inset: 0; display: grid; place-content: center; justify-items: center; gap: 18px; background: #07090d; z-index: 50; transition: opacity 0.8s; }
+#veil .mark { font: 200 54px/1 system-ui; letter-spacing: 0.32em; } #veil b { color: var(--acc); font-weight: 400; }
+#veil .bar { width: 180px; height: 2px; background: var(--line); } #veil .bar i { display: block; height: 100%; width: 0; background: var(--acc); transition: width 0.2s; }
+
+#power { position: fixed; left: 22px; bottom: 22px; width: 220px; padding: 14px 16px 12px; background: var(--glass); border: 1px solid var(--line);
+  border-radius: 16px; backdrop-filter: blur(14px) saturate(1.3); -webkit-backdrop-filter: blur(14px) saturate(1.3); z-index: 5; }
+.spd { display: flex; align-items: baseline; gap: 6px; }
+.spd span { font: 600 46px/0.95 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+small { color: var(--mut); font-size: 11px; }
+.bat { display: flex; align-items: center; gap: 6px; margin: 10px 0 10px; font: 600 14px ui-monospace, Menlo, monospace; }
+.bat .cell { width: 30px; height: 13px; border: 1.5px solid var(--mut); border-radius: 3px; padding: 1.5px; position: relative; margin-right: 4px; }
+.bat .cell:after { content: ""; position: absolute; right: -4px; top: 3px; width: 2px; height: 5px; background: var(--mut); border-radius: 1px; }
+.bat .cell i { display: block; height: 100%; width: 100%; background: #33d17a; border-radius: 1px; }
+.bat .tot { margin-left: auto; }
+.rows .r { display: grid; grid-template-columns: 16px 1fr 38px; align-items: center; gap: 8px; margin: 5px 0; }
+.rows svg { width: 15px; height: 15px; fill: none; stroke: var(--mut); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.rows .b { height: 4px; background: rgba(255, 255, 255, 0.07); border-radius: 2px; overflow: hidden; }
+.rows .b i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #ff6b3d, var(--acc)); border-radius: 2px; transition: width 0.1s linear; }
+.rows span { font: 500 12px ui-monospace, Menlo, monospace; text-align: right; font-variant-numeric: tabular-nums; }
+
+#lap { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 14px; align-items: baseline; z-index: 5;
+  font: 600 20px ui-monospace, Menlo, monospace; text-shadow: 0 2px 14px rgba(0,0,0,.6); font-variant-numeric: tabular-nums; }
+#lap #lb { font-size: 13px; color: #b9a3ff; }
+#map { position: fixed; right: 20px; top: 20px; width: 130px; height: 130px; z-index: 5; opacity: 0.92; }
+#dock { position: fixed; right: 20px; bottom: 22px; display: flex; flex-direction: column; gap: 8px; z-index: 6; }
+#dock button, #dock a { width: 44px; height: 44px; border-radius: 13px; border: 1px solid var(--line); background: var(--glass); backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px); display: grid; place-items: center; cursor: pointer; }
+#dock svg { width: 20px; height: 20px; fill: none; stroke: var(--ink); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+#dock a:hover, #dock button:hover { background: rgba(255, 255, 255, 0.1); }
+#sheet { position: fixed; right: 76px; bottom: 22px; padding: 12px; background: var(--glass); border: 1px solid var(--line); border-radius: 16px;
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); z-index: 6; display: flex; flex-direction: column; gap: 10px; }
+.grp.sw, .grp .sw { display: flex; gap: 8px; }
+.seg { display: flex; background: rgba(255, 255, 255, 0.05); border-radius: 10px; padding: 3px; gap: 2px; }
+.seg button { border: 0; background: transparent; color: var(--ink); font: 500 12px system-ui; padding: 7px 10px; border-radius: 8px; cursor: pointer; white-space: nowrap; }
+.seg button.on { background: rgba(255, 255, 255, 0.16); }
+#paint { padding: 2px 3px; } #paint i { width: 24px; height: 24px; border-radius: 50%; display: block; cursor: pointer; border: 2px solid transparent; box-shadow: inset 0 0 0 1px rgba(255,255,255,.25); }
+#paint i.on { border-color: #fff; }
+#touch { display: none; }
+@media (pointer: coarse) {
+  #touch { display: block; position: fixed; inset: 0; z-index: 4; pointer-events: none; }
+  #tsteer { position: absolute; left: 2vw; bottom: 3vh; width: 46vw; height: 44vh; pointer-events: auto; border-radius: 22px;
+    background: linear-gradient(90deg, rgba(255,255,255,.05), rgba(255,255,255,.015) 50%, rgba(255,255,255,.05)); }
+  #tsteer i { position: absolute; left: 50%; top: 50%; width: 58px; height: 58px; margin: -29px; border-radius: 50%; background: rgba(255,255,255,.14);
+    border: 1px solid rgba(255,255,255,.28); }
+  #tgas { position: absolute; right: 2vw; bottom: 3vh; width: 19vw; height: 62vh; pointer-events: auto; border-radius: 22px; background: rgba(51,209,122,.07); }
+  #tbrake { position: absolute; right: 23vw; bottom: 3vh; width: 15vw; height: 36vh; pointer-events: auto; border-radius: 22px; background: rgba(255,59,48,.07); }
+  #tgas:after, #tbrake:after { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font: 300 28px system-ui; color: rgba(255,255,255,.35); }
+  #tgas:after { content: "▲"; } #tbrake:after { content: "▼"; }
+  #power { transform: scale(0.58); transform-origin: top left; left: 8px; top: 8px; bottom: auto; }
+  #map { display: none; }
+  #lap { top: 8px; font-size: 15px; }
+  #dock { flex-direction: row; top: 8px; right: 8px; bottom: auto; }
+  #dock button, #dock a { width: 38px; height: 38px; border-radius: 11px; }
+  #sheet { right: 8px; top: 54px; bottom: auto; }
+}
+body.render #dock, body.render #sheet, body.render #touch, body.render #map { display: none !important; }
+body.render #power { transform: scale(1.75); transform-origin: bottom left; left: 3vw; bottom: 4vh; }
+body.render #lap { transform: translateX(-50%) scale(1.8); top: 4vh; }
+body.render.clean #power, body.render.clean #lap { display: none; }
