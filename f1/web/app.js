@@ -467,6 +467,21 @@ function bindTouch() {
   gz($("tgas"), (v) => (touchGas = v)); gz($("tbrake"), (v) => (touchBrake = v));
 }
 bindTouch();
+// control-link latency, as if the controller drove the real car: BT pad → Pi 4 (python) → UART → ESP32-S3,
+// or the phone over the hotspot (wifi + browser + websocket). [base ms, jitter ms] – estimates, not measured yet.
+const LAGS = { "0": [0, 0], bt: [35, 8], gsm: [120, 40] };
+let lagMode = "0", lagLast = 0, lagHeld = { throttle: 0, brake: 0, steer: 0 };
+try { lagMode = localStorage.getItem("sc02.lag") || "0"; if (!LAGS[lagMode]) lagMode = "0"; } catch { }
+const lagQ = [];
+function lagSend(inp, now) {                            // controller side: one packet per frame
+  const [base, jit] = LAGS[lagMode];
+  const arr = Math.max(lagLast, now + base + (Math.random() * 2 - 1) * jit);   // packets arrive in order
+  lagLast = arr; lagQ.push({ arr, inp: { ...inp } });
+}
+function lagAt(t) {                                      // car side: what the ESP has received at wall time t (ms)
+  while (lagQ.length && lagQ[0].arr <= t) lagHeld = lagQ.shift().inp;
+  return lagHeld;
+}
 function readInput() {
   let thr = 0, brk = 0, steer = 0;
   if (keys.KeyW || keys.ArrowUp) thr = 1;
@@ -654,6 +669,8 @@ seg("strk", (v) => { TRACK = v; try { localStorage.setItem("sc02.track", v); } c
 [...$("strk").children].forEach((b) => b.classList.toggle("on", b.dataset.v === TRACK));
 applyTrack();
 seg("slim", (v) => { cfg.vMotorMax = +v; veh.c.vMotorMax = +v; });
+seg("slag", (v) => { lagMode = v; lagQ.length = 0; try { localStorage.setItem("sc02.lag", v); } catch { } });
+[...$("slag").children].forEach((b) => b.classList.toggle("on", b.dataset.v === lagMode));
 seg("stc", (v) => { cfg.tc = v === "1"; veh.c.tc = cfg.tc; });
 seg("sxr", (v) => { const xr = v === "1"; car.userData.inside.visible = xr; M.body.transparent = xr; M.body.opacity = xr ? 0.18 : 1; M.body.depthWrite = !xr;
   M.canopy.transparent = xr; M.canopy.opacity = xr ? 0.2 : 1; M.canopy.depthWrite = !xr;
@@ -680,9 +697,15 @@ function step(dt) {
   const user = readInput();
   if (lastInput > 0) userDrove = true;                // demo autopilot only until the first input – it never takes over again
   demo = !userDrove;
-  const inp = demo ? autopilot() : user;
   const n = Math.ceil(dt / 0.001), h = dt / n;
-  for (let i = 0; i < n; i++) veh.step(h, inp);
+  if (!demo && LAGS[lagMode][0]) {                       // delayed link: packets land inside the 1 ms physics substeps
+    const now = performance.now(); lagSend(user, now);
+    for (let i = 0; i < n; i++) veh.step(h, lagAt(now - (dt - (i + 1) * h) * 1000));
+  } else {
+    lagQ.length = 0; lagHeld = user;
+    const inp = demo ? autopilot() : user;
+    for (let i = 0; i < n; i++) veh.step(h, inp);
+  }
   collide();
 }
 function frame(now) {

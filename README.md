@@ -59,7 +59,7 @@ Kort:
 
 ## Simulatie
 
-Online speelbaar op **https://kvr-ciber.github.io/sc02-solar-hypercar/sim/** (WASD of pijltjes, spatie = rem, C = camera, R = reset, gamepad werkt ook). In de instellingen kies je tussen het **circuit** en een **oneindige rechte lijn** met afstandsteller en 12 m-sprinttimer.
+Online speelbaar op **https://kvr-ciber.github.io/sc02-solar-hypercar/sim/** (WASD of pijltjes, spatie = rem, C = camera, R = reset, gamepad werkt ook). In de instellingen kies je tussen het **circuit** en een **oneindige rechte lijn** met afstandsteller en 12 m-sprinttimer. Met de knop **direct / BT · 35 ms / gsm · 120 ms** voel je de vertraging (met schommeling) die je zou hebben als je de echte wagen via de Pi bestuurt: Bluetooth-controller → Pi 4 → UART → ESP32, of gsm via de hotspot. Dat zijn schattingen, nog niet gemeten op de echte wagen.
 
 Lokaal draaien:
 
