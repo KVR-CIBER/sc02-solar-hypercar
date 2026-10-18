@@ -1,0 +1,4 @@
+(fp_lib_table
+	(version 7)
+	(lib (name "sc02")(type "KiCad")(uri "${KIPRJMOD}/sc02.pretty")(options "")(descr "SC-02 drive board"))
+)

@@ -1,0 +1,11 @@
+(footprint "MountingHole_2.75mm_M2.5_Pi"
+	(version 20241229)
+	(generator "arachne_gen")
+	(layer "F.Cu")
+	(descr "M2.5 hole on the Raspberry Pi 4 mounting pattern (58 x 49)")
+	(property "Reference" "REF**" (at 0 -4 0) (layer "F.SilkS") (effects (font (size 1 1) (thickness 0.15))))
+	(property "Value" "MountingHole_2.75mm_M2.5_Pi" (at 0 4 0) (layer "F.Fab") (effects (font (size 1 1) (thickness 0.15))))
+	(attr exclude_from_pos_files exclude_from_bom)
+	(pad "" np_thru_hole circle (at 0 0) (size 2.75 2.75) (drill 2.75) (layers "*.Cu" "*.Mask"))
+	(fp_circle (center 0 0) (end 3.0 0) (stroke (width 0.05) (type solid)) (fill no) (layer "F.CrtYd"))
+)
