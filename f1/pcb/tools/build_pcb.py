@@ -147,7 +147,7 @@ def build():
     board = pcbnew.CreateEmptyBoard()
     board.SetCopperLayerCount(4)
     ds = board.GetDesignSettings()
-    ds.SetBoardThickness(MM(1.6))
+    ds.SetBoardThickness(MM(design.BOARD_T))
     board.SetLayerName(pcbnew.In1_Cu, 'In1.Cu'); board.SetLayerName(pcbnew.In2_Cu, 'In2.Cu')
     # inner layers are solid planes (GND / 12 V): mark them 'power' so the autorouter keeps off them
     board.SetLayerType(pcbnew.In1_Cu, pcbnew.LT_POWER); board.SetLayerType(pcbnew.In2_Cu, pcbnew.LT_POWER)
@@ -183,29 +183,22 @@ def build():
         fps[p['ref']] = fp
         # small, tidy reference text
         r = fp.Reference(); r.SetTextSize(pcbnew.VECTOR2I(MM(0.8), MM(0.8))); r.SetTextThickness(MM(0.12))
-    for i in range(1, 5):
-        fps[f'H{i}'].Reference().SetVisible(False)
-    # sanity: the socket must match the Pi header (pin 1 inner row, pin 2 outer row, pins along +x)
-    p1, p2, p3 = pad_pos(fps['J9'], '1')[0], pad_pos(fps['J9'], '2')[0], pad_pos(fps['J9'], '3')[0]
-    assert abs(p1[0] - design.HDR1[0]) < .01 and abs(p2[1] - (design.HDR1[1] - 2.54)) < .01 and abs(p3[0] - (p1[0] + 2.54)) < .01, (p1, p2, p3)
-
-    # ---------------- outline + camera flex slot
+    # ---------------- outline (= the car floor) + Pi cooling slots
     edge = OUTLINE['edge']
     for a, b in zip(edge, edge[1:] + edge[:1]):
         if a != b:
             shape_line(board, pcbnew.Edge_Cuts, a, b, 0.1)
-    cx0, cy0, cx1, cy1 = design.CAM_SLOT
-    slot = rounded_rect_pts(cx0, cy0, cx1, cy1, 1.0, 4)
-    for a, b in zip(slot, slot[1:] + slot[:1]):
-        shape_line(board, pcbnew.Edge_Cuts, a, b, 0.1)
+    for sx0, sy0, sx1, sy1 in design.slots():
+        sl = rounded_rect_pts(sx0, sy0, sx1, sy1, 1.9, 6)
+        for a, b in zip(sl, sl[1:] + sl[:1]):
+            shape_line(board, pcbnew.Edge_Cuts, a, b, 0.1)
     inner = OUTLINE['inner']
     allcu = [pcbnew.F_Cu, pcbnew.In1_Cu, pcbnew.In2_Cu, pcbnew.B_Cu]
 
-    # ---------------- keep-outs: ESP32 antenna overhangs the bottom edge
-    ex = design.ESP[0]
-    keepout(board, rect(ex - 10.5, Y1 - 1.0, ex + 10.5, Y1 + 1), allcu, name='ESP antenne-rand')
+    # ---------------- ESP32 antenna: no copper under it or towards the side wall
+    ex, ey = design.ESP
 
-    # ---------------- planes: In1 GND, In2 = battery bus (motors + buck input)
+    # ---------------- planes (only in the electronics region): In1 GND, In2 = battery bus
     zone(board, 'GND', pcbnew.In1_Cu, inner, prio=0, name='GND plane', connect='full')
     zone(board, 'VBUS', pcbnew.In2_Cu, inner, prio=0, name='VBUS plane (batterij)', connect='full')
 
@@ -227,63 +220,67 @@ def build():
                     name=net + ': geen vreemde sporen')
         return x0, y0, x1, y1
 
-    # camera slot: keep copper and stitching vias away from its edge
-    keepout(board, rect(cx0 - 0.6, cy0 - 0.6, cx1 + 0.6, cy1 + 0.6), allcu, tracks=True, vias=True, pours=False, name='camera-sleuf')
-
-    # high-current copper on the top layer
-    # J1 pad 2 -> Q1 drain tab (L-shape: keeps clear of J1's GND pad and of Q1's gate/source legs)
-    zone(board, 'VBAT_RAW', pcbnew.F_Cu, [(-30.7, -14.8), (-25.3, -14.8), (-25.3, -19.2), (-15.7, -19.2), (-15.7, -26.4),
-                                          (-22.4, -26.4), (-22.4, -20.6), (-30.7, -20.6)], prio=3, name='VBAT_RAW lokaal', connect='full')
-    keepout(board, [(-30.3, -15.2), (-25.7, -15.2), (-25.7, -19.6), (-16.1, -19.6), (-16.1, -26.0), (-22.0, -26.0), (-22.0, -21.0),
-                     (-30.3, -21.0)], [pcbnew.F_Cu], tracks=True, vias=False, pours=False, name='VBAT_RAW: geen vreemde sporen')
-    # Q1 source leg -> shunt (RS1 pad 1, right)
-    zone(board, 'VBAT_P', pcbnew.F_Cu, rect(-17.7, -17.9, -15.0, -10.6), prio=3, name='VBAT_P lokaal', connect='full')
-    keepout(board, rect(-17.3, -17.5, -15.4, -13.0), [pcbnew.F_Cu], tracks=True, vias=False, pours=False, name='VBAT_P: geen vreemde sporen')
-    # the two small VBAT_P taps the autorouter cannot reach through the keep-out: INA226 Vin+ (Kelvin, at the shunt pad)
-    # and the gate-clamp zener
-    u6, rs = pad_pos(fps['U6'], '10')[0], pad_pos(fps['RS1'], '1')[0]
+    Lx, Ly = design.L
+    lp = lambda x, y: (x + Lx, y + Ly)
+    # battery path on top-layer copper: XT60 -> fuse -> switch -> Q1 drain
+    # XT60 + -> fuse (L-shape, keeps clear of the fuse's other pad) and fuse -> switch pad
+    j1, f1a, f1b, s1 = pad_pos(fps['J1'], '2')[0], pad_pos(fps['F1'], '1')[0], pad_pos(fps['F1'], '2')[0], pad_pos(fps['J11'], '1')[0]
+    bat_in = [(j1[0] - 3.0, j1[1] - 2.8), (j1[0] + 2.9, j1[1] - 2.8), (j1[0] + 2.9, f1a[1] - 1.4), (f1a[0] + 2.1, f1a[1] - 1.4),
+              (f1a[0] + 2.1, f1a[1] + 1.4), (j1[0] - 3.0, f1a[1] + 1.4)]
+    bat_f = rect(min(f1b[0], s1[0]) - 2.1, min(f1b[1], s1[1]) - 2.0, max(f1b[0], s1[0]) + 2.1, max(f1b[1], s1[1]) + 1.0)
+    for net, pts in (('BAT_IN', bat_in), ('BAT_F', bat_f)):
+        zone(board, net, pcbnew.F_Cu, pts, prio=3, name=net + ' lokaal', connect='full')
+        keepout(board, pts, [pcbnew.F_Cu], tracks=True, vias=False, pours=False, name=net + ': geen vreemde sporen')
+    local('VBAT_RAW', [('J11', '2'), ('Q1', '2')], 0.4, ko=True)
+    # Q1 source leg -> shunt pad 1
+    zone(board, 'VBAT_P', pcbnew.F_Cu, rect(*lp(-17.7, -17.9), *lp(-15.0, -10.6)), prio=3, name='VBAT_P lokaal', connect='full')
+    keepout(board, rect(*lp(-17.3, -17.5), *lp(-15.4, -13.0)), [pcbnew.F_Cu], tracks=True, vias=False, pours=False, name='VBAT_P: geen vreemde sporen')
+    u6, rs = pad_pos(fps['U6'], '10')[0], pad_pos(fps['RS1'], '1')[0]       # INA226 Vin+ (Kelvin) + gate-clamp zener taps
     xk = rs[0] + 0.45
     for a_, b_ in ((u6, (xk, u6[1])), ((xk, u6[1]), (xk, rs[1] + 1.5))):
         track(board, 'VBAT_P', a_, b_, 0.25)
     d2 = pad_pos(fps['D2'], '1')[0]
-    for a_, b_ in ((d2, (d2[0], -18.6)), ((d2[0], -18.6), (-15.2, -17.7))):
+    for a_, b_ in ((d2, (d2[0], lp(0, -18.6)[1])), ((d2[0], lp(0, -18.6)[1]), lp(-15.2, -17.7))):
         track(board, 'VBAT_P', a_, b_, 0.3)
     vb = local('VBUS', [('RS1', '2')], 0.4)
     local('SW', [('U1', '8'), ('L1', '1'), ('D4', '1')], 0.3, prio=4, ko=False)
     local('V5', [('L1', '2'), ('C9', '1'), ('C10', '1'), ('C11', '1')], 0.3, ko=False)
-    # RS1 -> VBUS plane (2 x 2 vias inside the pad area)
-    for dx in (0.7, 1.6):
+    # buck BOOT (U1 pin 1 -> C8): route it underneath, so it cannot cut the SW copper next to U1 pin 8
+    u1, c8 = pad_pos(fps['U1'], '1')[0], pad_pos(fps['C8'], '1')[0]
+    v1, v2 = (u1[0] - 0.95, u1[1] - 1.6), (c8[0], c8[1] + 1.3)
+    track(board, 'BOOT', u1, v1, 0.3); via(board, 'BOOT', v1, d=0.6, drill=0.3)
+    for a_, b_ in ((v1, (v1[0], v1[1] - 0.0)), ((v1[0], v1[1]), (v2[0], v1[1])), ((v2[0], v1[1]), v2)):
+        if a_ != b_:
+            track(board, 'BOOT', a_, b_, 0.3, layer=pcbnew.B_Cu)
+    via(board, 'BOOT', v2, d=0.6, drill=0.3); track(board, 'BOOT', v2, c8, 0.3)
+    for dx in (0.7, 1.6):                                  # shunt -> VBUS plane
         for dy in (-0.8, 0.8):
             via(board, 'VBUS', (vb[2] - dx, (vb[1] + vb[3]) / 2 + dy))
-    # buck output -> bottom 5 V band: vias beside the inductor's 5 V pad (under the inductor body)
-    for x in (21.0, 22.3):
-        for y in (-16.6, -15.4):
-            via(board, 'V5', (x, y))
 
-    # 5 V on the bottom layer: buck output -> Pi header pins 2/4 -> servo
-    v5 = [(-26.0, -34.6), (31.6, -34.6), (31.6, -1.0), (28.0, -1.0), (28.0, -10.0), (18.6, -10.0), (18.6, -19.0),
-          (28.0, -19.0), (28.0, -28.6), (-26.0, -28.6)]
-    zone(board, 'V5', pcbnew.B_Cu, v5, prio=2, name='5V bus (bottom)', connect='full')
-    keepout(board, [(-9.8, -34.6)] + v5[1:-1] + [(-9.8, -28.6)], [pcbnew.B_Cu], tracks=True, vias=False, pours=False,
-            name='5V bus: geen sporen')
-
-    fanout(board, {'GND', 'VBUS', 'V5'}, {'V5': v5})
+    fanout(board, {'GND', 'VBUS'}, {})
 
     # ---------------- artwork
     F, B = pcbnew.F_SilkS, pcbnew.B_SilkS
-    text(board, F, 'SC-02 DRIVE', (-4.0, -1.6), size=1.2, th=0.22, bold=True)
-    text(board, F, 'ESP32-S3 + 2x DRV8871  v1.0', (-4.0, 0.2), size=0.6, th=0.11)
-    text(board, F, 'CAMERA', ((cx0 + cx1) / 2, cy0 - 1.0), size=0.7)
-    text(board, F, 'RST', (-23.5, 25.2), size=0.6)
-    text(board, F, 'BOOT', (-19.5, 25.2), size=0.6)
-    text(board, F, 'MOTOR 1', (-27.5, -4.4), size=0.7, bold=True)
-    text(board, F, 'MOTOR 2', (-27.5, 4.6), size=0.7, bold=True)
-    text(board, F, 'G V S', (32.0, -3.5), size=0.6, rot=90)
-    text(board, F, 'SERVO', (27.2, -9.2), size=0.7)
-    text(board, F, 'HALL', (-29.5, 21.2), size=0.7)
-    text(board, F, 'G V S', (-32.0, 24.0), size=0.6, rot=90)
-    text(board, F, 'LICHT', (27.2, 6.0), size=0.7, rot=90)
-    text(board, F, 'PANEEL', (21.6, 17.6), size=0.7)
+    text(board, F, 'SC-02', (100.0, -39.0), size=1.6, th=0.28, bold=True)
+    text(board, F, 'SC-02 DRIVE  v2  floor', (100.0, 39.0), size=1.0, th=0.18, bold=True)
+    text(board, F, 'XT60  - +', (58.5, -47.5), size=0.8, bold=True)
+    text(board, F, 'MOTOR 1', (57.0, 36.5), size=0.7, bold=True)
+    text(board, F, 'MOTOR 2', (57.0, 48.6), size=0.7, bold=True)
+    text(board, F, 'HALL  G V S', (58.0, 60.6), size=0.6)
+    text(board, F, 'SERVO G V S', (130.6, 41.5), size=0.6, rot=90)
+    text(board, F, 'RST', (75.2, 63.6), size=0.6, rot=90)
+    text(board, F, 'BOOT', (75.2, 59.6), size=0.6, rot=90)
+    text(board, F, 'PANEEL', (118.0, 41.8), size=0.6)
+    text(board, F, 'LICHT', (126.0, 41.8), size=0.6)
+    text(board, F, 'USB-C', (125.0, 60.0), size=0.7, bold=True)
+    text(board, F, 'ELRS RP2', (107.0, -41.6), size=0.7, bold=True)
+    text(board, F, 'PI UART', (118.5, -41.6), size=0.7, bold=True)
+    # spot for the RadioMaster RP2 receiver on the bare floor in front of the left pod (double-sided tape)
+    rp = rounded_rect_pts(138.5, -49.0, 150.5, -37.0, 1.0, 4)
+    for a_, b_ in zip(rp, rp[1:] + rp[:1]):
+        shape_line(board, F, a_, b_, 0.15)
+    text(board, F, 'ELRS', (144.5, -44.0), size=1.2, th=0.2, bold=True)
+    text(board, F, 'RP2', (144.5, -41.8), size=1.0, th=0.18)
     # back side: big name + spider
     back_art(board)
     silk_cleanup(board)
@@ -370,6 +367,8 @@ def fanout(board, plane_nets, regions):
         for extra, k, vx, vy in cands:
             if _edge_dist(vx, vy) < vd / 2 + 0.5:
                 continue
+            if not _pt_in_poly(vx, vy, OUTLINE['inner']) or min(_dist_seg(vx, vy, p, q) for p, q in zip(OUTLINE['inner'], OUTLINE['inner'][1:] + OUTLINE['inner'][:1])) < vd / 2 + 0.5:
+                continue
             if any(_pt_in_poly(vx, vy, poly) and an != net for poly, an in blocked):
                 continue
             if any(math.hypot(vx - x, vy - y) < rr + vd / 2 + 0.2 for x, y, rr, nn in vias):
@@ -419,10 +418,11 @@ def silk_cleanup(board):
 
 
 def back_art(board):
+    """The underside of the car: name in big letters on the black solder mask."""
     B = pcbnew.B_SilkS
-    text(board, B, 'SC-02', (0, 25.0), size=3.0, th=0.45, mirror=True, bold=True)
-    text(board, B, 'solar hypercar drive board', (0, 28.6), size=1.0, th=0.16, mirror=True)
-    text(board, B, 'Kobe Van Robaeys  ·  2026', (0, 30.8), size=0.9, th=0.15, mirror=True)
+    text(board, B, 'SC-02', (0.0, 0.0), size=12.0, th=1.8, mirror=True, bold=True)
+    text(board, B, 'SOLAR HYPERCAR', (0.0, 10.5), size=3.2, th=0.5, mirror=True, bold=True)
+    text(board, B, 'Kobe Van Robaeys  ·  2026', (0.0, -9.5), size=2.0, th=0.3, mirror=True)
 
 
 def spider(board, layer, c, s):

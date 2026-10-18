@@ -52,7 +52,7 @@ def stitch_gnd(b):
         if c.OutlineCount():
             bb = c.BBox(); cy.append((bb.GetX(), bb.GetY(), bb.GetRight(), bb.GetBottom()))
     m = B.MM(0.75); n = 0
-    poly = B.OUTLINE['edge']
+    poly = B.OUTLINE['inner']
 
     def inside(px, py, margin=1.2):
         c = False
@@ -65,7 +65,8 @@ def stitch_gnd(b):
             if (x1 + t * dx - px) ** 2 + (y1 + t * dy - py) ** 2 < margin ** 2:
                 return False
         return c
-    for gx, gy in itertools.product(range(-66, 67, 4), range(-33, 34, 4)):
+    xs_ = [p[0] for p in poly]; ys_ = [p[1] for p in poly]
+    for gx, gy in itertools.product(range(int(min(xs_)), int(max(xs_)) + 1, 4), range(int(min(ys_)), int(max(ys_)) + 1, 4)):
         x, y = B.MM(B.OX + gx), B.MM(B.OY + gy)
         if not inside(gx, gy):
             continue

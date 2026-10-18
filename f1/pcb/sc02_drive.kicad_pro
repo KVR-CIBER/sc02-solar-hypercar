@@ -628,6 +628,14 @@
     "netclass_patterns": [
       {
         "netclass": "POWER12",
+        "pattern": "BAT_IN"
+      },
+      {
+        "netclass": "POWER12",
+        "pattern": "BAT_F"
+      },
+      {
+        "netclass": "POWER12",
         "pattern": "VBAT_RAW"
       },
       {

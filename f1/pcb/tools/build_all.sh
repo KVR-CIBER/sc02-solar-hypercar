@@ -7,7 +7,7 @@ VENV=~/Documents/GitHub/arachne-18/.venv/bin/python        # numpy + shapely for
 KC=/Applications/KiCad/KiCad.app/Contents/MacOS/kicad-cli
 [ -f freerouting.jar ] || curl -sL -o freerouting.jar https://github.com/freerouting/freerouting/releases/download/v2.4.1/freerouting-2.4.1.jar
 mkdir -p ../out
-python3 design.py
+$VENV design.py
 $PY libs.py 2>/dev/null
 $PY build_pcb.py 2>/dev/null
 $PY build_sch.py 2>/dev/null

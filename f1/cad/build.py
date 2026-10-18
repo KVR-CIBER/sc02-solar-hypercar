@@ -23,6 +23,7 @@ BODY_CUTS = [
     C.cyl_y(3.4, 0, AXLE_RZ, -64, 64), C.box(-3.4, 3.4, -64, 64, 0, AXLE_RZ),          # rear axle + spacer through the liners (slot open downward)
     *[C.box(C.PYLON_X[0] - 0.4, C.PYLON_X[1] + 0.4, yp - 1.6, yp + 1.6, 0, 80) for yp in C.PYLON_Y],   # wing pylon slots
     *[C.box(216, 248, s * 46 - 7, s * 46 + 7, 0, 14.0) for s in (1, -1)],             # front lower arms + tie rods into the arches
+    C.box(118.5, 131.5, -78, -60, FLOOR_TOP - 0.5, FLOOR_TOP + 6.5),                   # USB-C of the floor PCB (f1/pcb), plug in from outside
 ]
 body_m, body_outer = BD.shell(extra_cuts=BODY_CUTS)
 # magnet bosses inside the body (match the floor clips)

@@ -70,6 +70,16 @@ def mount_hole():
                    attr='exclude_from_pos_files exclude_from_bom')
 
 
+def padsn(name, labels, p=3.0, pad=2.2, drill=1.0, descr='Solder pads'):
+    b = ''
+    for i, lab in enumerate(labels):
+        shape = 'roundrect (roundrect_rratio 0.2)' if i == 0 else 'circle'
+        b += f'\t(pad "{i + 1}" thru_hole {shape} (at {i * p} 0) (size {pad} {pad}) (drill {drill}) (layers "*.Cu" "*.Mask"))\n'
+        b += f'\t(fp_text user "{lab}" (at {i * p} {pad / 2 + 1.0:.2f} 0) (layer "F.SilkS") (effects (font (size 0.6 0.6) (thickness 0.12))))\n'
+    b += f'\t(fp_rect (start {-pad/2 - .3:.2f} {-pad/2 - .3:.2f}) (end {(len(labels) - 1) * p + pad/2 + .3:.2f} {pad/2 + 1.7:.2f}) (stroke (width 0.05) (type solid)) (fill no) (layer "F.CrtYd"))\n'
+    return fp_text(name, b, descr)
+
+
 def pads2(name, l1, l2, p=5.0, pad=3.2, drill=1.5, descr='Two solder pads'):
     b = f'\t(pad "1" thru_hole circle (at 0 0) (size {pad} {pad}) (drill {drill}) (layers "*.Cu" "*.Mask"))\n'
     b += f'\t(pad "2" thru_hole roundrect (roundrect_rratio 0.2) (at {p} 0) (size {pad} {pad}) (drill {drill}) (layers "*.Cu" "*.Mask"))\n'
@@ -85,6 +95,12 @@ def mount_hole_m25():
     return fp_text('MountingHole_2.75mm_M2.5_Pi', b, 'M2.5 hole on the Raspberry Pi 4 mounting pattern (58 x 49)', attr='exclude_from_pos_files exclude_from_bom')
 
 
+def hole(d):
+    b = f'\t(pad "" np_thru_hole circle (at 0 0) (size {d} {d}) (drill {d}) (layers "*.Cu" "*.Mask"))\n'
+    b += f'\t(fp_circle (center 0 0) (end {d / 2 + 0.25:.2f} 0) (stroke (width 0.05) (type solid)) (fill no) (layer "F.CrtYd"))\n'
+    return fp_text(f'Hole_{d:.1f}mm', b, f'{d} mm floor hole (countersunk from below for M3 where d = 3.2)', attr='exclude_from_pos_files exclude_from_bom')
+
+
 def build_fp_lib():
     d = os.path.join(PRJ, LIB + '.pretty'); os.makedirs(d, exist_ok=True)
     for f in os.listdir(d):
@@ -92,7 +108,13 @@ def build_fp_lib():
     custom = {'SolderWire_2pad_P7mm_D2.2mm_BAT': pads2('SolderWire_2pad_P7mm_D2.2mm_BAT', 'BAT-', 'BAT+', 7.0, 4.6, 2.2, 'Battery leads 3S LiPo (14-16 AWG)'),
               'SolderWire_2pad_P5mm_M': pads2('SolderWire_2pad_P5mm_M', 'A', 'B', 5.0, 3.2, 1.5, 'Motor leads (20-22 AWG)'),
               'SolderWire_2pad_P4mm_S': pads2('SolderWire_2pad_P4mm_S', '-', '+', 4.0, 2.4, 1.0, 'Small solder pads (solar panel / lights)'),
+              'SolderWire_2pad_P5mm_SW': pads2('SolderWire_2pad_P5mm_SW', 'SW', 'SW', 5.0, 3.2, 1.5, 'Power switch leads'),
+              'SolderWire_2pad_P5mm_5V': pads2('SolderWire_2pad_P5mm_5V', 'GND', '5V PI', 5.0, 3.2, 1.5, '5 V 3 A to the Pi 4'),
+              'Pads_ELRS_RX': padsn('Pads_ELRS_RX', ['GND', '5V', 'TX', 'RX'], descr='ExpressLRS receiver (RadioMaster RP2): GND 5V TX RX (CRSF)'),
+              'Pads_PI_UART': padsn('Pads_PI_UART', ['GND', 'TXD', 'RXD'], descr='UART to the Raspberry Pi 4: GND, Pi TXD (pin 8), Pi RXD (pin 10)'),
               'MountingHole_2.75mm_M2.5_Pi': mount_hole_m25()}
+    for d_ in design.HOLE_SIZES:
+        custom[f'Hole_{d_:.1f}mm'] = hole(d_)
     for n, t in custom.items():
         open(os.path.join(d, n + '.kicad_mod'), 'w').write(t)
     for p in design.parts:
@@ -100,6 +122,17 @@ def build_fp_lib():
         if lib == LIB:
             continue
         shutil.copy(os.path.join(FPDIR, lib + '.pretty', n + '.kicad_mod'), os.path.join(d, n + '.kicad_mod'))
+    # ESP32-S3 module: KiCad's antenna keep-out is 48 x 21 mm beyond the module; on the floor board that would cut through
+    # the right pod. Keep only the antenna width (21 mm) and 9 mm in front of it.
+    esp = os.path.join(d, 'ESP32-S3-WROOM-1.kicad_mod')
+    if os.path.exists(esp):
+        t = open(esp).read()
+        t = t.replace('(xy -24 -6.75) (xy 24 -6.75) (xy 24 -27.75) (xy -24 -27.75)', '(xy -10.5 -6.75) (xy 10.5 -6.75) (xy 10.5 -16) (xy -10.5 -16)')
+        for o, n in (('(start -24 -27.75)', '(start -10.5 -16)'), ('(end -24 -6.75)', '(end -10.5 -6.75)'), ('(start -24 -6.75)', '(start -10.5 -6.75)'),
+                     ('(end 24 -6.75)', '(end 10.5 -6.75)'), ('(start 24 -27.75)', '(start 10.5 -16)'), ('(end -24 -27.75)', '(end -10.5 -16)'),
+                     ('(start 24 -6.75)', '(start 10.5 -6.75)'), ('(end 24 -27.75)', '(end 10.5 -16)')):
+            t = t.replace(o, n)
+        open(esp, 'w').write(t)
     return d
 
 

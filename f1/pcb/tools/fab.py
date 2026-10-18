@@ -17,12 +17,12 @@ LCSC = {'AOD4185': 'C400894', 'BZT52C15': 'C173427', 'SMBJ15CA': 'C78410', '330u
         'AMS1117-3.3': 'C6186', '10u': 'C15850', '22u': 'C29277', 'ESP32-S3-WROOM-1-N16R8': 'C2913202', '10k': 'C25804',
         '1u': 'C15849', 'RESET': 'C72443', 'BOOT': 'C72443', '2N7002': 'C8545', '100k': 'C25803', '1k': 'C21190',
         '74AHCT1G126': 'C163712', '74LVC1G34': 'C840096', '47': 'C23182', 'MPU-6050': 'C24112', '2n2': 'C1604',
-        '10n': 'C57112', '4k7': 'C23162', '15k': 'C22809', 'USB-C PI': 'C165948', '5k1': 'C23186',
+        '10n': 'C57112', '4k7': 'C23162', '15k': 'C22809', 'USB-C': 'C165948', 'ELRS RP2': '(solder pads, no part)', 'PI UART': '(solder pads, no part)', '5k1': 'C23186',
         'USBLC6-2SC6': 'C2687116', '20k': 'C4184', 'FSUSB42MUX': 'C11355', '470': 'C23179', 'RPIBOOT': 'C2886898',
         'AAN/UIT': 'C2886898', 'FAN': 'C160404', 'PI LINK': 'C492422', 'GPIO': 'C41430886', 'TPS54560B': 'C1850354',
         'CM5 (wireless)': 'C6782225 x2 (connectors only)', '12V IN': '(solder pads, no part)', '5V PI': '(solder pads, no part)',
         'DRV8871': 'C75864', 'INA226': 'C49851', '2m': 'C160590', '100u 25V': 'C72477', 'AO3400A': 'C20917', '18k': 'C25810',
-        '100': 'C22775', '33k': 'C4216', 'PI 4': 'C25503128', 'SERVO': 'C49257', 'HALL': 'C49257', 'I2C': 'C160404',
+        '100': 'C22775', '33k': 'C4216', 'XT60': 'C98733', '10A': 'C2838934', 'USB-C': 'C165948', 'ELRS RP2': '(solder pads, no part)', 'PI UART': '(solder pads, no part)', 'SCHAKELAAR': '(solder pads, no part)', 'SERVO': 'C49257', 'HALL': 'C49257', 'I2C': 'C160404',
         'geel ESP': 'C2287', 'USB-C': 'C165948', 'BAT 3S': '(solder pads, no part)', 'MOTOR 1': '(solder pads, no part)',
         'MOTOR 2': '(solder pads, no part)', 'ZONNEPANEEL': '(solder pads, no part)', 'LICHTEN': '(solder pads, no part)'}
 

@@ -44,7 +44,7 @@ def dump():
             for ln, l in L.items():
                 if t.GetLayer() == l:
                     d['tracks'].append(dict(net=t.GetNetname(), layer=ln, a=T(t.GetStart()), b=T(t.GetEnd()), w=pcbnew.ToMM(t.GetWidth())))
-    for z in b.Zones():
+    for z in list(b.Zones()) + [z for fp_ in b.GetFootprints() for z in fp_.Zones()]:   # incl. footprint keep-outs (ESP antenna)
         for ln, l in L.items():
             if not z.IsOnLayer(l):
                 continue
@@ -171,9 +171,12 @@ def route():
     from shapely.ops import unary_union
     d = json.load(open(os.path.join(OUT, 'fin_dump.json')))
     G = 0.1
-    xs = np.arange(-70, 70.001, G); ys = np.arange(-35, 35.001, G)
+    reg = json.load(open(os.path.join(HERE, 'outline.json')))['inner']
+    X0, X1 = min(p[0] for p in reg) - 1, max(p[0] for p in reg) + 1
+    Y0, Y1 = min(p[1] for p in reg) - 1, max(p[1] for p in reg) + 1
+    xs = np.arange(X0, X1 + 0.001, G); ys = np.arange(Y0, Y1 + 0.001, G)
     X, Y = np.meshgrid(xs, ys)
-    board = Polygon(d['outline'])
+    board = Polygon(d['outline']).intersection(Polygon(reg))
     widths = {'V5': 0.4, 'V12': 0.5, 'GND': 0.3, '3V3': 0.3, 'CM_3V3': 0.3}
     results = []
     for ends in d['opens']:
@@ -208,7 +211,7 @@ def route():
             vu = unary_union(vobs[l]); vf = shapely.contains_xy(vinside, X, Y) & ~shapely.contains_xy(vu, X, Y)
             vfree = vf if vfree is None else (vfree & vf)
         H, W = X.shape
-        idx = lambda p: (int(round((p[1] + 35) / G)), int(round((p[0] + 70) / G)))
+        idx = lambda p: (int(round((p[1] - Y0) / G)), int(round((p[0] - X0) / G)))
         # start/goal: make a small free disc around each anchor (own copper there)
         starts, goals = [], []
         for e, lst in ((ends[0], starts), (ends[1], goals)):
@@ -250,7 +253,7 @@ def route():
         while path[-1] in came:
             path.append(came[path[-1]])
         path.reverse()
-        pt = lambda s: (round(-70 + s[2] * G, 3), round(-35 + s[1] * G, 3))
+        pt = lambda s: (round(X0 + s[2] * G, 3), round(Y0 + s[1] * G, 3))
 
         def visible(a, c):                                  # straight line a->c stays in free cells?
             l = a[0]; n = int(max(abs(c[1] - a[1]), abs(c[2] - a[2])) * 2) + 1
@@ -275,6 +278,10 @@ def route():
             segs[-1]['b'] = tuple(ends[1]['pos']) if segs[-1]['layer'] in ends[1]['layers'] else segs[-1]['b']
         print('routed', net, 'segments', len(segs), 'vias', len(vias), 'expanded', it)
         results.append(dict(net=net, w=w, segs=segs, vias=vias))
+        for s_ in segs:                                   # later routes in this run must avoid this one
+            d['tracks'].append(dict(net=net, layer=s_['layer'], a=s_['a'], b=s_['b'], w=w))
+        for v_ in vias:
+            d['vias'].append(dict(net=net, pos=v_, r=0.225))
     json.dump(results, open(os.path.join(OUT, 'fin_routes.json'), 'w'))
 
 

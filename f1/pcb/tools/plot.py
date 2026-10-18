@@ -3,10 +3,11 @@ import json, sys
 import matplotlib; matplotlib.use('Agg'); import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle, FancyBboxPatch
 d = json.load(open(sys.argv[1])); png = sys.argv[2]
-fig, ax = plt.subplots(figsize=(16, 16)); ax.set_aspect('equal')
+fig, ax = plt.subplots(figsize=(13, 20)); ax.set_aspect('equal')
 import json as _j; _o=_j.load(open('outline.json'))['edge']; ax.plot([p[0] for p in _o],[p[1] for p in _o],'k',lw=2)
 for f in d:
     if f['ref']=='U3': x,y=f['pos']; f['box']=[x-9.78,y-13.47,x+9.78,y+12.9]
+d=[f for f in d if not f['ref'].startswith('H') or 40<f['pos'][0]<150]
 for f in d:
     x0, y0, x1, y1 = f['box']
     big = f['ref'] in ('M1',)
@@ -23,5 +24,5 @@ for i, a in enumerate(d):
         if A[0] < B[2] and B[0] < A[2] and A[1] < B[3] and B[1] < A[3]:
             ov.append((a['ref'], b['ref']))
 print('overlaps:', ov)
-ax.set_xlim(-36, 36); ax.set_ylim(44, -38); ax.grid(alpha=.3); ax.set_xticks(range(-35, 36, 5)); ax.set_yticks(range(-40, 46, 5))
+ax.set_xlim(50, 140); ax.set_ylim(70, -70); ax.grid(alpha=.3); ax.set_xticks(range(50, 141, 5)); ax.set_yticks(range(-70, 71, 5))
 fig.savefig(png, dpi=70, bbox_inches='tight')

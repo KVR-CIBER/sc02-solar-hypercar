@@ -1,0 +1,11 @@
+(footprint "Hole_6.2mm"
+	(version 20241229)
+	(generator "arachne_gen")
+	(layer "F.Cu")
+	(descr "6.2 mm floor hole (countersunk from below for M3 where d = 3.2)")
+	(property "Reference" "REF**" (at 0 -4 0) (layer "F.SilkS") (effects (font (size 1 1) (thickness 0.15))))
+	(property "Value" "Hole_6.2mm" (at 0 4 0) (layer "F.Fab") (effects (font (size 1 1) (thickness 0.15))))
+	(attr exclude_from_pos_files exclude_from_bom)
+	(pad "" np_thru_hole circle (at 0 0) (size 6.2 6.2) (drill 6.2) (layers "*.Cu" "*.Mask"))
+	(fp_circle (center 0 0) (end 3.35 0) (stroke (width 0.05) (type solid)) (fill no) (layer "F.CrtYd"))
+)
