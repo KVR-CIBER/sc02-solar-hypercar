@@ -1,64 +1,42 @@
-# SC-02 floor board (v2.0)
+# SC-02 drive board (v3.0)
 
-**The whole floor of the car is this PCB.** Same outline, same countersunk M3 holes and same Pi cooling slots as the
-2 mm acrylic floor. It is a 2 mm, 4-layer board in black solder mask, and every printed part still screws on from below.
-The electronics sit in the two sidepods, where the separate boards used to be. A copper strip under the battery tray
-joins both pods; the rest of the floor is bare.
+A **compact 86 x 90 mm board on 4x M3 standoffs**, with the 3S LiPo on top of it. No Raspberry Pi anymore, a **built-in
+ExpressLRS 2.4 GHz receiver** for the RadioMaster Pocket, and a real **solar-panel connector**.
+(v2 was the whole car floor; that is gone: the car floor goes back to the 2 mm acrylic / printed floor.)
 
-| Where | What |
+| Block | Parts |
 |---|---|
-| left pod (car left) | **XT60** (LiPo plugs in from above), **10 A fuse**, power switch pads, P-MOSFET reverse protection, **INA226** + 2 mOhm shunt, **TPS54560B 5 V 5 A** buck, 5V PI pads, PI UART pads, **ELRS** receiver pads, Qwiic I2C |
-| right pod (car right) | **ESP32-S3** (antenna towards the side wall), **2x DRV8871** motor drivers + motor pads, hall header, servo header, solar panel + light pads, RESET/BOOT, **USB-C at the floor edge** |
-| in front of the left pod | marked spot for the **RadioMaster RP2** ELRS receiver (double-sided tape) |
+| Power (unchanged from v2) | **XT60**, 10 A fuse, power switch pads, P-MOSFET reverse protection, **INA226** + 2 mOhm shunt, **TPS54560B 5 V 5 A** buck |
+| Car brain | **ESP32-S3-WROOM-1** (antenna at the bottom edge), USB-C at the edge, RESET / BOOT |
+| Motors | **2x DRV8871** (3.6 A limit) + motor pads |
+| **ExpressLRS receiver** | **ESP32-C3-MINI-1** + **Ebyte E28-2G4M12S** (SX1280, 12.5 dBm, PCB antenna at the right edge), own 3.3 V LDO, RGB status LED, BIND button |
+| Connectors | servo (MG90S), hall (A3144), lights (switched 5 V), **solar panel JST-XH 2-pin**, Qwiic I2C |
 
-## Driving with the RadioMaster Pocket (ELRS)
+Checks: **DRC 0, unconnected 0, ERC 0, schematic parity 0.** JLC BOM/CPL in `fab/` with LCSC numbers.
 
-1. Bind a **RadioMaster RP2** (ExpressLRS 2.4 GHz) to the Pocket.
-2. Solder its 4 wires to the **ELRS RP2** pads: GND, 5V, TX, RX. The labels are the receiver's pins: receiver TX goes to the "TX" pad.
-3. Stick it on the marked spot, away from the ESP32 on the other side of the car.
-4. The ESP32 reads CRSF on **IO16 (RX) / IO15 (TX)** at 420000 baud.
-5. Channels: steering = ch1, throttle = ch2/ch3 (set in the firmware). Failsafe: no CRSF frames for 300 ms gives motors off and the servo centred.
+## ExpressLRS: flashing and binding
+The receiver is wired exactly like ExpressLRS' **"Generic C3 2400"** target (SCK 6, MOSI 4, MISO 5, NSS 7, BUSY 3, DIO1 1,
+RST 2, LED 8, button 9, CRSF on 20/21), so the normal ExpressLRS firmware runs on it, no custom layout needed.
+1. First flash: ExpressLRS Configurator -> target **Generic C3 2400 RX**, flash method **WiFi** or via the **RX USB** pads
+   (D-, D+, GND: a cut USB cable) while holding **BIND** at power-on.
+2. Bind with the Pocket (binding phrase, or press BIND 3x).
+3. CRSF goes to the car ESP32-S3: C3 TX -> **IO16**, S3 **IO15** -> C3 RX (420000 baud). The S3 can reset the receiver
+   (**IO17** -> EN) and start its bootloader (**IO18** -> IO9), so later updates can go through the car's USB-C.
+Tip: keep the S3's own WiFi off while driving (same 2.4 GHz band).
 
-## Connections
-
-| Pads / connector | What |
-|---|---|
-| **XT60** | LiPo 3S. `-` is the chamfered side of the XT60: **check this against your battery plug**. If it is reversed, the MOSFET blocks and nothing breaks. |
-| **SCHAKELAAR** | the two wires of the power switch; the switch sits in the 6.2 mm hole in the floor (operated from below) |
-| **MOTOR 1 / MOTOR 2** | motor leads A / B; swap them if a motor turns the wrong way |
-| **HALL G V S** | A3144 hall sensor (10k pull-up on the board) |
-| **SERVO G V S** | MG90S: brown GND, red 5 V, orange signal |
-| **PANEEL** | solar panel - / + (only measured, on IO8) |
-| **LICHT** | LED lights at 5 V, with their own resistors; switched by IO11 |
-| **5V PI** | 5 V 3 A to the Pi 4: GPIO pin 2 or 4 (+5 V) and pin 6 (GND) |
-| **PI UART** | GND, TXD, RXD to Pi pins 6 / 8 / 10 (1k resistors on the board) -> `/dev/serial0` on the Pi |
-| **USB-C** | at the floor edge, reachable from outside through the opening in the body side: flash / debug the ESP32 from the Mac (no battery needed) |
-| **I2C** (Qwiic) | 3.3 V I2C (same bus as the INA226) for an IMU or extra sensors |
+## Solar panel
+JST-XH 2-pin (**-** / **+**), voltage on IO8 (x 4.03). Solder jumper **JP1 (ZON>5V)**, open by default: closed, the panel
+helps the 5 V rail through a Schottky diode. Only close it with a panel whose open-circuit voltage is at most 6 V.
 
 ## ESP32-S3 pins
-
-| GPIO | function | GPIO | function |
+| GPIO | | GPIO | |
 |---|---|---|---|
 | 4 / 5 | motor 1 IN1 / IN2 | 6 / 7 | motor 2 IN1 / IN2 |
-| 9 | servo | 38 | hall sensor |
-| 15 / 16 | ELRS TX / RX (CRSF) | 17 / 18 | UART TX / RX to the Pi |
-| 1 / 2 | I2C SDA / SCL (INA226 + Qwiic) | 8 | solar panel voltage (x 4.03) |
+| 9 | servo | 38 | hall |
+| 15 / 16 | CRSF TX / RX (receiver) | 17 / 18 | receiver EN / BOOT |
+| 1 / 2 | I2C SDA / SCL (INA226 0x40 + Qwiic) | 8 | solar panel voltage |
 | 11 | lights | 12 | yellow LED |
-| 0 | BOOT = race-mode button | 19 / 20 | USB-C |
 
-The firmware (`firmware/sc02/car.cpp`) still has to be adapted to these pins:
-* DRV8871 uses IN1/IN2 instead of EN/PH;
-* the hall sensor is on IO38;
-* the CRSF/ELRS input is new.
-
-## Body change
-
-`f1/cad/build.py` cuts a 13 x 7 mm opening in the right body side at x = 118.5..131.5 mm for the USB-C plug.
-The trays and the ESP bridge from the acrylic version (`power_tray_L/R`, `esp_bridge`) are no longer needed.
-
-## Order (JLCPCB)
-
-* 4 layers, **2.0 mm** thick, black solder mask.
-* Upload `fab/sc02_drive_gerbers_JLCPCB.zip` plus the BOM + CPL; all LCSC numbers are filled in.
-* The board is ~362 x 159 mm, so it costs more than a small board. It is also ~60-90 g heavier than the acrylic floor.
-* **Countersunk holes:** order them as an option (all M3 holes, 90 deg, from the bottom), or use pan-head screws.
+## Still to do
+* Car CAD: floor back to acrylic + 4 standoff holes for this board, battery tray on top, USB-C opening at the new place.
+* Firmware `car.cpp`: DRV8871 IN1/IN2, CRSF on IO15/16, hall IO38.

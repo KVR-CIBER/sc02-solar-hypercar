@@ -112,7 +112,14 @@ def build_fp_lib():
               'SolderWire_2pad_P5mm_5V': pads2('SolderWire_2pad_P5mm_5V', 'GND', '5V PI', 5.0, 3.2, 1.5, '5 V 3 A to the Pi 4'),
               'Pads_ELRS_RX': padsn('Pads_ELRS_RX', ['GND', '5V', 'TX', 'RX'], descr='ExpressLRS receiver (RadioMaster RP2): GND 5V TX RX (CRSF)'),
               'Pads_PI_UART': padsn('Pads_PI_UART', ['GND', 'TXD', 'RXD'], descr='UART to the Raspberry Pi 4: GND, Pi TXD (pin 8), Pi RXD (pin 10)'),
+              'Pads_RX_USB': padsn('Pads_RX_USB', ['D-', 'D+', 'GND'], p=2.54, pad=1.6, drill=0.8,
+                                   descr='USB test pads of the ELRS receiver C3 (first flash with a cut USB cable)'),
               'MountingHole_2.75mm_M2.5_Pi': mount_hole_m25()}
+    # LCSC/EasyEDA footprints (easyeda2kicad, docs/elrs): ELRS module + C3 module + RGB LED, 3D models kept in the project
+    ez = os.path.join(PRJ, 'docs', 'elrs', 'e28lib.pretty')
+    for f in os.listdir(ez):
+        t = open(os.path.join(ez, f)).read().replace('(model "e28lib.3dshapes/', '(model "${KIPRJMOD}/docs/elrs/e28lib.3dshapes/')
+        custom[f[:-len('.kicad_mod')]] = t
     for d_ in design.HOLE_SIZES:
         custom[f'Hole_{d_:.1f}mm'] = hole(d_)
     for n, t in custom.items():
@@ -193,6 +200,10 @@ def cm5_symbol():
     return s
 
 
+EASYEDA_SYMS = {'sc02:ESP32-C3-MINI-1': 'ESP32-C3-MINI-1-N4', 'sc02:E28-2G4M12S': 'E28-2G4M12S',
+                'sc02:SK6812MINI-E': 'SK6812MINI-E_C5149201'}
+
+
 def build_sym_lib():
     out = {}
     for p in design.parts:
@@ -201,6 +212,16 @@ def build_sym_lib():
             continue
         if sid == 'sc02:CM5':
             out[n] = cm5_symbol()
+        elif sid in EASYEDA_SYMS:                  # LCSC/EasyEDA symbols: all pins 'passive' (they come in as 'unspecified')
+            s = rename_sym(symlib.get('e28lib:' + EASYEDA_SYMS[sid], os.path.join(PRJ, 'docs', 'elrs', 'e28lib.kicad_sym')), n)
+            for sub in find(s, 'symbol'):
+                for pn in find(sub, 'pin'):
+                    if pn[1] == Sym('unspecified') or str(pn[1]) == 'unspecified':
+                        pn[1] = Sym('passive')
+            for e in s:
+                if isinstance(e, list) and e[0] == 'property' and e[1] == 'Reference':
+                    e[2] = {'sc02:SK6812MINI-E': 'D'}.get(sid, 'U')
+            out[n] = s
         elif sid == 'sc02:Q_PMOS_GDS':
             s = rename_sym(symlib.get('Device:Q_PMOS'), 'Q_PMOS_GDS')
             m = {'G': '1', 'D': '2', 'S': '3'}

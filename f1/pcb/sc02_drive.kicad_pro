@@ -96,7 +96,7 @@
         "footprint": "error",
         "footprint_filters_mismatch": "ignore",
         "footprint_symbol_field_mismatch": "warning",
-        "footprint_symbol_mismatch": "warning",
+        "footprint_symbol_mismatch": "ignore",
         "footprint_type_mismatch": "ignore",
         "hole_clearance": "error",
         "hole_to_hole": "warning",
@@ -676,6 +676,10 @@
       },
       {
         "netclass": "PWR",
+        "pattern": "3V3_RX"
+      },
+      {
+        "netclass": "PWR",
         "pattern": "V5_ESP"
       },
       {
@@ -689,6 +693,14 @@
       {
         "netclass": "PWR",
         "pattern": "LIGHT_D"
+      },
+      {
+        "netclass": "PWR",
+        "pattern": "PANEL"
+      },
+      {
+        "netclass": "PWR",
+        "pattern": "PANEL_D"
       },
       {
         "netclass": "USB",

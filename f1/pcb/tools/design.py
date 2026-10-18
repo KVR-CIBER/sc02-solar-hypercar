@@ -1,26 +1,25 @@
-"""SC-02 floor board: the whole floor of the car is the PCB. Single source of truth for parts, nets and placement.
+"""SC-02 drive board v3: a compact board on M3 standoffs (the battery sits on top of it), no Raspberry Pi, a built-in
+ExpressLRS 2.4 GHz receiver and a real solar-panel connector. Single source of truth for parts, nets and placement.
 
-The 2 mm laser-cut acrylic floor is replaced by a 2 mm 4-layer PCB with exactly the same outline, the same countersunk
-M3 holes (all printed parts screw on from below, as before) and the Pi cooling slots. The electronics sit in the two
-sidepods, where the separate boards used to be:
-  * left pod  (car +y): XT60, fuse, power switch pads, reverse protection, INA226 current sense, 5 V 5 A buck, I2C;
-  * right pod (car -y): ESP32-S3, 2x DRV8871, USB-C to the Raspberry Pi 4, servo / hall / lights / solar panel.
-A copper strip under the battery tray joins both pods. The rest of the floor is bare (black solder mask, no copper).
-
-PCB coordinates = car coordinates with y flipped: X = car x (forward, rear axle at 0), Y = -car y (KiCad y points down),
-so in the PCB view the front is to the right and the car's left side is at the top.
+  * top half  : XT60, 10 A fuse, power switch pads, P-MOSFET reverse protection, INA226 current sense, 5 V 5 A buck
+                (exactly the proven layout of v2, only the board around it changed);
+  * bottom    : 2x DRV8871 + motor pads, ESP32-S3 (car brain, USB-C), servo / hall / lights / solar panel, and the
+                ELRS receiver: ESP32-C3-MINI-1 + Ebyte E28-2G4M12S (SX1280, 12.5 dBm, PCB antenna) wired exactly like
+                ExpressLRS' "Generic C3 2400" target, so the official firmware runs on it without a custom layout.
+The C3 talks CRSF (420 kbaud) to the S3 on IO15/IO16; the S3 can also reset the C3 / put it in bootloader (IO17/IO18).
+Coordinates: X forward, Y = -car y (KiCad y down); same origin as v2 so the power block keeps its layout.
 """
 import json, os
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-FLOOR = json.load(open(os.path.join(HERE, 'floor.json')))      # from f1/cad (car.py): outline, holes, part boxes
-BOARD_T = 2.0
-CORNER_R = 0.0
-BOARD_W, BOARD_H = 362.0, 158.6       # bounding box of the floor (informational)
-# electronics region: left pod + bridge under the battery tray + right pod (PCB coordinates)
-REGION = [(54.0, -66.0), (136.0, -66.0), (136.0, -36.5), (66.0, -36.5), (66.0, 36.5), (136.0, 36.5), (136.0, 66.0), (131.0, 66.0),
-          (131.0, 68.2), (119.0, 68.2), (119.0, 66.0), (54.0, 66.0)]     # (notch to the floor edge for the USB-C)
-ESP = (92.5, 50.5)              # ESP32-S3 module origin, rotated 180: antenna towards the car's right side wall
+BOARD_T = 1.6
+CORNER_R = 3.0
+BOARD = (52.0, -68.0, 138.0, 22.0)  # x0, y0, x1, y1: 86 x 90 mm
+BOARD_W, BOARD_H = BOARD[2] - BOARD[0], BOARD[3] - BOARD[1]
+ESP = (93.0, 9.0)               # ESP32-S3 origin, rotated 180: antenna at the bottom edge (y = 22)
+ELRS_RF = (120.5, 12.0)         # E28 origin, rotated 90: its PCB antenna at the right edge (x = 138)
+ELRS_MCU = (127.0, -10.0)       # ESP32-C3-MINI-1 origin, rotated 270: antenna at the right edge
+MOUNT = [(55.5, 18.5), (77.0, -64.0), (55.5, -30.0), (134.5, -27.0)]   # M3 standoff holes
 L = (104.0, -36.0)              # offset of the power block (same relative layout as the HAT version)
 
 parts = []
@@ -80,7 +79,7 @@ P('U6', 'Sensor_Energy:INA226', 'Package_SO:TSSOP-10_3x3mm_P0.5mm', 'INA226',
 C('C2', '100n', '3V3', 'GND', l(-14.0, -11.0, 90), G)
 
 # ---------------------------------------------------------------- 5 V / 5 A buck (TI TPS54560B, same design as ARACHNE)
-G = 'Buck 5 V 5 A (Pi 4 + servo)'
+G = 'Buck 5 V 5 A (ESP32, servo, lichten)'
 BX, BY = 12.5, -16.5
 P('U1', 'Regulator_Switching:TPS54560BDDA', 'Package_SO:Texas_R-PDSO-G8_EP2.95x4.9mm_Mask2.4x3.1mm_ThermalVias',
   'TPS54560B', {1: 'BOOT', 2: 'VBUS', 3: 'BUCK_EN', 4: 'BUCK_RT', 5: 'BUCK_FB', 6: 'BUCK_COMP', 7: 'GND', 8: 'SW', 9: 'GND'},
@@ -105,16 +104,14 @@ C('C12', '4n7', 'COMP_RC', 'GND', l(BX + 1.8, BY + 8.2, 90), G)
 C('C13', '47p', 'BUCK_COMP', 'GND', l(BX + 0.2, BY + 8.2, 90), G)
 P('D5', 'Device:LED', LED0603, 'groen 5V', {1: 'GND', 2: 'LED5_A'}, l(BX - 3.0, BY + 8.6, 90), mpn='LED 0603 green', group=G)
 R('R10', '2k2', 'V5', 'LED5_A', l(BX - 1.4, BY + 8.6, 90), G)
-P('J13', 'Connector_Generic:Conn_01x02', 'sc02:SolderWire_2pad_P5mm_5V', '5V PI', {1: 'GND', 2: 'V5'}, (126.0, -39.0, 0),
-  mpn='solder pads: 5 V 3 A to the Pi 4 (GPIO pin 2/4 + 6)', group=G)
 P('J7', 'Connector_Generic_MountingPin:Conn_01x04_MountingPin', 'Connector_JST:JST_SH_SM04B-SRSS-TB_1x04-1MP_P1.00mm_Horizontal',
   'I2C', {1: 'GND', 2: '3V3', 3: 'I2C_SDA', 4: 'I2C_SCL', 'MP': 'GND'}, l(-1.5, -17.0, 0), mpn='JST SM04B-SRSS-TB (Qwiic / STEMMA QT)', group=G)
 R('R24', '4k7', 'I2C_SDA', '3V3', l(-8.3, -19.0, 90), G)
 R('R25', '4k7', 'I2C_SCL', '3V3', l(-8.3, -15.8, 90), G)
 
 # ---------------------------------------------------------------- motor drivers (right pod, rear end: short leads to the motors)
-for i, (u, rc, rc2, rl, j, y, in1, in2) in enumerate((('U4', 'C20', 'C21', 'R20', 'J2', 42.0, 4, 5),
-                                                       ('U5', 'C22', 'C23', 'R21', 'J3', 54.0, 6, 7)), 1):
+for i, (u, rc, rc2, rl, j, y, in1, in2) in enumerate((('U4', 'C20', 'C21', 'R20', 'J2', -18.0, 4, 5),
+                                                       ('U5', 'C22', 'C23', 'R21', 'J3', -4.0, 6, 7)), 1):
     G = f'Motor {i} (DRV8871)'
     P(u, 'Driver_Motor:DRV8871DDA', 'Package_SO:Texas_HTSOP-8-1EP_3.9x4.9mm_P1.27mm_EP2.95x4.9mm_Mask2.4x3.1mm_ThermalVias',
       'DRV8871', {1: 'GND', 2: f'M{i}_IN2', 3: f'M{i}_IN1', 4: f'M{i}_ILIM', 5: 'VBUS', 6: f'M{i}_A', 7: 'GND', 8: f'M{i}_B', 9: 'GND'},
@@ -127,13 +124,13 @@ for i, (u, rc, rc2, rl, j, y, in1, in2) in enumerate((('U4', 'C20', 'C21', 'R20'
 
 # ---------------------------------------------------------------- ESP32-S3 + 3.3 V
 G = '3,3 V (ESP32 + INA226)'
-P('D6', 'Diode:SS14', 'Diode_SMD:D_SMA', 'SS14', {1: 'V5_ESP', 2: 'V5'}, (108.5, 39.5, 0), mpn='SS14', group=G)
-P('D7', 'Diode:SS14', 'Diode_SMD:D_SMA', 'SS14', {1: 'V5_ESP', 2: 'VBUS_USB'}, (108.5, 43.3, 0), mpn='SS14', group=G)
+P('D6', 'Diode:SS14', 'Diode_SMD:D_SMA', 'SS14', {1: 'V5_ESP', 2: 'V5'}, (88.0, -22.5, 0), mpn='SS14', group=G)
+P('D7', 'Diode:SS14', 'Diode_SMD:D_SMA', 'SS14', {1: 'V5_ESP', 2: 'VBUS_USB'}, (88.0, -18.7, 0), mpn='SS14', group=G)
 P('U2', 'Regulator_Linear:AMS1117-3.3', 'Package_TO_SOT_SMD:SOT-223-3_TabPin2', 'AMS1117-3.3',
-  {1: 'GND', 2: '3V3', 3: 'V5_ESP'}, (107.5, 53.0, 90), mpn='AMS1117-3.3', group=G)
-C('C14', '10u', 'V5_ESP', 'GND', (105.0, 47.0, 0), G, fp=C0805)
-C('C15', '22u', '3V3', 'GND', (109.0, 60.0, 0), G, fp=C0805)
-C('C16', '100n', '3V3', 'GND', (105.5, 60.0, 0), G)
+  {1: 'GND', 2: '3V3', 3: 'V5_ESP'}, (99.0, -20.0, 0), mpn='AMS1117-3.3', group=G)
+C('C14', '10u', 'V5_ESP', 'GND', (93.0, -24.0, 90), G, fp=C0805)
+C('C15', '22u', '3V3', 'GND', (99.0, -13.6, 0), G, fp=C0805)
+C('C16', '100n', '3V3', 'GND', (95.6, -13.6, 0), G)
 
 G = 'ESP32-S3'
 P('U3', 'RF_Module:ESP32-S3-WROOM-1', 'RF_Module:ESP32-S3-WROOM-1', 'ESP32-S3-WROOM-1-N16R8',
@@ -143,75 +140,97 @@ P('U3', 'RF_Module:ESP32-S3-WROOM-1', 'RF_Module:ESP32-S3-WROOM-1', 'ESP32-S3-WR
    12: 'PANEL_ADC', 20: 'LED_ESP',                          # IO8 IO12
    39: 'I2C_SDA', 38: 'I2C_SCL',                            # IO1 IO2
    8: 'ELRS_TX', 9: 'ELRS_RX',                              # IO15 = ESP TX -> receiver RX, IO16 = ESP RX <- receiver TX (CRSF)
-   10: 'ESP_TX', 11: 'ESP_RX',                              # IO17 / IO18: UART to the Pi
+   10: 'RX_EN_CTL', 11: 'RX_BOOT_CTL',                      # IO17 / IO18: reset + bootloader of the ELRS C3
    13: 'ESP_DM', 14: 'ESP_DP', 27: 'ESP_IO0'},
   (ESP[0], ESP[1], 180), mpn='ESP32-S3-WROOM-1-N16R8', group=G)
-C('C17', '22u', '3V3', 'GND', (79.2, 41.0, 0), G, fp=C0805)
-C('C18', '100n', '3V3', 'GND', (79.2, 44.5, 0), G)
-R('R11', '10k', '3V3', 'ESP_EN', (104.0, 64.0, 90), G)
-C('C19', '1u', 'ESP_EN', 'GND', (105.8, 64.0, 90), G)
-R('R12', '10k', '3V3', 'ESP_IO0', (107.6, 64.0, 90), G)
-P('SW1', 'Switch:SW_Push', 'Button_Switch_SMD:SW_Push_1P1T_NO_CK_KMR2', 'RESET', {1: 'ESP_EN', 2: 'GND'}, (78.6, 63.6, 0),
+C('C17', '22u', '3V3', 'GND', (82.0, -6.0, 90), G, fp=C0805)
+C('C18', '100n', '3V3', 'GND', (80.2, -6.0, 90), G)
+R('R11', '10k', '3V3', 'ESP_EN', (104.0, 0.0, 90), G)
+C('C19', '1u', 'ESP_EN', 'GND', (105.8, 0.0, 90), G)
+R('R12', '10k', '3V3', 'ESP_IO0', (107.6, 0.0, 90), G)
+P('SW1', 'Switch:SW_Push', 'Button_Switch_SMD:SW_Push_1P1T_NO_CK_KMR2', 'RESET', {1: 'ESP_EN', 2: 'GND'}, (107.6, 19.4, 0),
   mpn='CK KMR221G (4.2x2.8 tact)', group=G)
-P('SW2', 'Switch:SW_Push', 'Button_Switch_SMD:SW_Push_1P1T_NO_CK_KMR2', 'BOOT', {1: 'ESP_IO0', 2: 'GND'}, (78.6, 59.6, 0),
+P('SW2', 'Switch:SW_Push', 'Button_Switch_SMD:SW_Push_1P1T_NO_CK_KMR2', 'BOOT', {1: 'ESP_IO0', 2: 'GND'}, (107.6, 14.8, 0),
   mpn='CK KMR221G (4.2x2.8 tact) - also the race-mode button', group=G)
-P('D8', 'Device:LED', LED0603, 'geel ESP', {1: 'GND', 2: 'LED_ESP_A'}, (113.5, 49.0, 90), mpn='LED 0603 yellow', group=G)
-R('R13', '1k', 'LED_ESP', 'LED_ESP_A', (113.5, 52.2, 90), G)
+P('D8', 'Device:LED', LED0603, 'geel ESP', {1: 'GND', 2: 'LED_ESP_A'}, (104.0, 5.0, 90), mpn='LED 0603 yellow', group=G)
+R('R13', '1k', 'LED_ESP', 'LED_ESP_A', (105.8, 5.0, 90), G)
 
 # ---------------------------------------------------------------- USB-C: ESP32 native USB -> Raspberry Pi 4 (C to A cable)
 G = 'USB-C (flashen / debug van buitenaf)'
 P('J8', 'Connector:USB_C_Receptacle_USB2.0_16P', USBC, 'USB-C',
   {'A1': 'GND', 'A12': 'GND', 'B1': 'GND', 'B12': 'GND', 'SH': 'GND', 'A4': 'VBUS_USB', 'A9': 'VBUS_USB',
    'B4': 'VBUS_USB', 'B9': 'VBUS_USB', 'A5': 'CC1', 'B5': 'CC2', 'A6': 'ESP_DP', 'B6': 'ESP_DP',
-   'A7': 'ESP_DM', 'B7': 'ESP_DM'}, (125.0, 64.6, 0), mpn='HRO TYPE-C-31-M-12 (at the floor edge: reachable through the body side)', group=G)
-R('R27', '5k1', 'CC1', 'GND', (118.0, 56.5, 90), G)
-R('R28', '5k1', 'CC2', 'GND', (132.0, 56.5, 90), G)
+   'A7': 'ESP_DM', 'B7': 'ESP_DM'}, (73.0, 18.2, 0), mpn='HRO TYPE-C-31-M-12 (board edge)', group=G)
+R('R27', '5k1', 'CC1', 'GND', (68.5, 10.5, 90), G)
+R('R28', '5k1', 'CC2', 'GND', (77.5, 10.5, 90), G)
 P('U10', 'Power_Protection:USBLC6-2SC6', 'Package_TO_SOT_SMD:SOT-23-6', 'USBLC6-2SC6',
-  {1: 'ESP_DP', 6: 'ESP_DP', 3: 'ESP_DM', 4: 'ESP_DM', 2: 'GND', 5: 'VBUS_USB'}, (125.0, 55.5, 0), mpn='USBLC6-2SC6', group=G)
-C('C29', '1u', 'VBUS_USB', 'GND', (121.5, 52.0, 0), G)
+  {1: 'ESP_DP', 6: 'ESP_DP', 3: 'ESP_DM', 4: 'ESP_DM', 2: 'GND', 5: 'VBUS_USB'}, (73.0, 9.5, 0), mpn='USBLC6-2SC6', group=G)
+C('C29', '1u', 'VBUS_USB', 'GND', (73.0, 6.5, 0), G)
 
 # ---------------------------------------------------------------- connectors: servo, hall, panel, lights
 G = 'Aansluitingen'
-P('J4', 'Connector_Generic:Conn_01x03', HDR3, 'SERVO', {1: 'GND', 2: 'V5', 3: 'SERVO_SIG'}, (133.0, 39.0, 0),
+P('J4', 'Connector_Generic:Conn_01x03', HDR3, 'SERVO', {1: 'GND', 2: 'V5', 3: 'SERVO_SIG'}, (110.0, -22.5, 90),
   mpn='1x3 pin header 2.54 (MG90S: brown GND, red 5 V, orange signal)', group=G)
-R('R18', '100', 'SERVO_PWM', 'SERVO_SIG', (130.0, 47.5, 90), G)
-P('J5', 'Connector_Generic:Conn_01x03', HDR3, 'HALL', {1: 'GND', 2: 'V5', 3: 'HALL'}, (55.5, 63.5, 90),
+R('R18', '100', 'SERVO_PWM', 'SERVO_SIG', (112.0, -18.6, 0), G)
+P('J5', 'Connector_Generic:Conn_01x03', HDR3, 'HALL', {1: 'GND', 2: 'V5', 3: 'HALL'}, (57.0, 7.5, 0),
   mpn='1x3 pin header 2.54 (A3144: GND, 5 V, out)', group=G)
-R('R19', '10k', 'HALL', '3V3', (64.0, 61.5, 90), G)
-P('J6', 'Connector_Generic:Conn_01x02', 'sc02:SolderWire_2pad_P4mm_S', 'ZONNEPANEEL', {1: 'GND', 2: 'PANEL'}, (116.0, 38.5, 0),
-  mpn='solder pads, solar panel 5 V (measured only)', group=G)
-R('R22', '100k', 'PANEL', 'PANEL_ADC', (116.5, 44.5, 90), G)
-R('R23', '33k', 'PANEL_ADC', 'GND', (118.3, 44.5, 90), G)
-P('J10', 'Connector_Generic:Conn_01x02', 'sc02:SolderWire_2pad_P4mm_S', 'LICHTEN', {1: 'LIGHT_D', 2: 'V5'}, (124.0, 38.5, 0),
+R('R19', '10k', 'HALL', '3V3', (60.8, 3.0, 0), G)
+P('J6', 'Connector_Generic:Conn_01x02', 'Connector_JST:JST_XH_B2B-XH-A_1x02_P2.50mm_Vertical', 'ZONNEPANEEL',
+  {1: 'GND', 2: 'PANEL'}, (70.0, -33.0, 0), mpn='JST XH 2-pin (B2B-XH-A): plug the solar panel in (5 V 1 W)', group=G)
+R('R22', '100k', 'PANEL', 'PANEL_ADC', (77.0, -35.0, 90), G)
+R('R23', '33k', 'PANEL_ADC', 'GND', (78.8, -35.0, 90), G)
+# optional: let the panel help the 5 V rail (close JP1). Only with a panel whose open-circuit voltage is <= 6 V!
+P('D9', 'Diode:SS14', 'Diode_SMD:D_SMA', 'SS14', {1: 'PANEL_D', 2: 'PANEL'}, (73.0, -26.2, 0), mpn='SS14 (solar -> 5 V)', group=G)
+P('JP1', 'Jumper:SolderJumper_2_Open', 'Jumper:SolderJumper-2_P1.3mm_Open_RoundedPad1.0x1.5mm', 'ZON>5V',
+  {1: 'PANEL_D', 2: 'V5'}, (79.0, -26.2, 0), mpn='solder jumper (open): solar panel feeds the 5 V rail', group=G)
+P('J10', 'Connector_Generic:Conn_01x02', 'sc02:SolderWire_2pad_P4mm_S', 'LICHTEN', {1: 'LIGHT_D', 2: 'V5'}, (60.5, 18.8, 0),
   mpn='solder pads, LED lights 5 V (with their own resistors), low-side switched', group=G)
-P('Q4', 'Transistor_FET:AO3400A', SOT23, 'AO3400A', {1: 'LIGHT_G', 2: 'GND', 3: 'LIGHT_D'}, (124.0, 45.5, 0), mpn='AO3400A', group=G)
-R('R26', '100k', 'LIGHT_G', 'GND', (124.0, 48.5, 0), G)
+P('Q4', 'Transistor_FET:AO3400A', SOT23, 'AO3400A', {1: 'LIGHT_G', 2: 'GND', 3: 'LIGHT_D'}, (63.5, 12.5, 0), mpn='AO3400A', group=G)
+R('R26', '100k', 'LIGHT_G', 'GND', (63.5, 9.4, 0), G)
 
-# ---------------------------------------------------------------- RadioMaster ELRS receiver (RP2) + UART to the Pi 4
-G = 'ELRS-ontvanger + Pi UART'
-P('J12', 'Connector_Generic:Conn_01x04', 'sc02:Pads_ELRS_RX', 'ELRS RP2', {1: 'GND', 2: 'V5', 3: 'ELRS_RX_IN', 4: 'ELRS_TX_OUT'},
-  (102.5, -39.0, 0), mpn='solder pads for a RadioMaster RP2 ELRS receiver (stick it on the marked spot)', group=G)
-R('R29', '100', 'ELRS_RX_IN', 'ELRS_RX', (102.4, -43.5, 90), G)     # receiver TX -> ESP RX (IO16)
-R('R30', '100', 'ELRS_TX', 'ELRS_TX_OUT', (104.2, -43.5, 90), G)    # ESP TX (IO15) -> receiver RX
-P('J9', 'Connector_Generic:Conn_01x03', 'sc02:Pads_PI_UART', 'PI UART', {1: 'GND', 2: 'PI_TXD', 3: 'PI_RXD'},
-  (115.5, -39.0, 0), mpn='solder pads: wires to the Pi 4 header (pin 6 GND, pin 8 TXD, pin 10 RXD)', group=G)
-R('R16', '1k', 'ESP_TX', 'PI_RXD', (106.0, -43.5, 90), G)    # series resistors: no back-powering of an unpowered Pi
-R('R17', '1k', 'PI_TXD', 'ESP_RX', (107.8, -43.5, 90), G)
+# ---------------------------------------------------------------- built-in ExpressLRS 2.4 GHz receiver ("Generic C3 2400")
+G = 'ELRS-ontvanger (ESP32-C3 + SX1280)'
+rx, ry = ELRS_MCU
+P('U11', 'sc02:ESP32-C3-MINI-1', 'sc02:WIFIM-SMD_ESP32-C3-MINI-1', 'ESP32-C3-MINI-1-N4',
+  {1: 'GND', 2: 'GND', 11: 'GND', 14: 'GND', **{n: 'GND' for n in range(36, 54)}, 3: '3V3_RX', 8: 'RX_EN',
+   13: 'RF_DIO1', 5: 'RF_RST', 6: 'RF_BUSY', 18: 'RF_MOSI', 19: 'RF_MISO', 20: 'RF_SCK', 21: 'RF_NSS',
+   22: 'RX_LED', 23: 'RX_BOOT', 26: 'RX_USB_DM', 27: 'RX_USB_DP', 30: 'RX_SERIAL_IN', 31: 'RX_SERIAL_OUT'},
+  (rx, ry, 270), mpn='ESP32-C3-MINI-1-N4 (ELRS receiver MCU, flash "Generic C3 2400")', group=G)
+P('U12', 'sc02:E28-2G4M12S', 'sc02:WIRELM-SMD_E28-2G4M12S', 'E28-2G4M12S',
+  {1: '3V3_RX', 2: 'GND', 7: 'GND', 8: 'GND', 14: 'GND', 3: 'RF_MISO', 4: 'RF_MOSI', 5: 'RF_SCK', 6: 'RF_NSS',
+   9: 'RF_RST', 10: 'RF_BUSY', 11: 'RF_DIO1'},
+  (ELRS_RF[0], ELRS_RF[1], 90), mpn='Ebyte E28-2G4M12S (SX1280 2.4 GHz, 12.5 dBm, PCB antenna)', group=G)
+P('U13', 'Regulator_Linear:AMS1117-3.3', 'Package_TO_SOT_SMD:SOT-223-3_TabPin2', 'AMS1117-3.3',
+  {1: 'GND', 2: '3V3_RX', 3: 'V5'}, (125.0, -24.0, 0), mpn='AMS1117-3.3 (receiver supply)', group=G)
+C('C30', '10u', 'V5', 'GND', (119.0, -26.5, 90), G, fp=C0805)
+C('C31', '22u', '3V3_RX', 'GND', (131.0, -24.0, 90), G, fp=C0805)
+C('C32', '100n', '3V3_RX', 'GND', (rx - 7.5, ry - 7.0, 90), G)
+C('C33', '10u', '3V3_RX', 'GND', (113.6, 2.6, 0), G, fp=C0805)
+C('C34', '100n', '3V3_RX', 'GND', (113.6, 0.6, 0), G)
+R('R31', '10k', '3V3_RX', 'RX_EN', (rx - 7.5, ry + 1.0, 90), G)
+C('C35', '1u', 'RX_EN', 'GND', (rx - 9.3, ry + 1.0, 90), G)
+R('R32', '10k', '3V3_RX', 'RX_BOOT', (rx - 7.5, ry + 4.6, 90), G)
+R('R33', '10k', '3V3_RX', 'RX_LED', (rx - 9.3, ry + 4.6, 90), G, mpn='0603 10k (IO8 strapping pin high at boot)')
+R('R34', '1k', 'RX_EN_CTL', 'RX_EN', (rx - 11.1, ry + 1.0, 90), G, mpn='0603 1k (S3 can reset the receiver)')
+R('R35', '1k', 'RX_BOOT_CTL', 'RX_BOOT', (rx - 11.1, ry + 4.6, 90), G, mpn='0603 1k (S3 can start the receiver bootloader)')
+R('R29', '100', 'RX_SERIAL_OUT', 'ELRS_RX', (rx - 12.9, ry + 1.0, 90), G)      # C3 TX -> S3 RX (IO16), CRSF
+R('R30', '100', 'ELRS_TX', 'RX_SERIAL_IN', (rx - 12.9, ry + 4.6, 90), G)      # S3 TX (IO15) -> C3 RX
+P('SW3', 'Switch:SW_Push', 'Button_Switch_SMD:SW_Push_1P1T_NO_CK_KMR2', 'BIND', {1: 'RX_BOOT', 2: 'GND'}, (108.6, -5.6, 0),
+  mpn='CK KMR221G: ELRS bind / bootloader button', group=G)
+P('D10', 'sc02:SK6812MINI-E', 'sc02:LED-SMD_4P-L3.2-W2.8-LS5.9_SK6812MINI-E', 'SK6812MINI-E',
+  {1: 'GND', 2: 'RX_LED', 3: '3V3_RX'}, (110.8, 9.4, 0), mpn='SK6812MINI-E (ELRS status LED, RGB)', group=G)
+P('J12', 'Connector_Generic:Conn_01x03', 'sc02:Pads_RX_USB', 'RX USB', {1: 'RX_USB_DM', 2: 'RX_USB_DP', 3: 'GND'},
+  (112.0, -31.5, 0), mpn='test pads: USB D-/D+/GND of the receiver C3 (first flash)', group=G)
 
-# ---------------------------------------------------------------- mounting: every floor hole of the car (+ the power switch)
-seen = set(); holes = []
-for x, y, d in FLOOR['holes']:
-    if (x, y) not in seen:
-        seen.add((x, y)); holes.append((x, -y, d))
-holes.append((77.5, -63.5, 6.2))                   # power switch from below (was at car (70, -46) on the acrylic floor)
-for i, (x, y, d) in enumerate(holes, 1):
-    P(f'H{i}', 'Mechanical:MountingHole', f'sc02:Hole_{d:.1f}mm', f'{d:.1f}', {}, (x, y, 0), group='Bevestiging (vloergaten)')
-HOLE_SIZES = sorted({d for _, _, d in holes})
+# ---------------------------------------------------------------- mounting: 4x M3 on standoffs (battery on top of the board)
+for i, (x, y) in enumerate(MOUNT, 1):
+    P(f'H{i}', 'Mechanical:MountingHole', 'sc02:Hole_3.2mm', 'M3', {}, (x, y, 0), group='Bevestiging')
+HOLE_SIZES = [3.2]
 
 NETCLASS = {
     'POWER12': (['BAT_IN', 'BAT_F', 'VBAT_RAW', 'VBAT_P', 'VBUS', 'M1_A', 'M1_B', 'M2_A', 'M2_B'], 1.0, 0.2),
     'POWER5': (['V5', 'SW'], 0.6, 0.2),
-    'PWR': (['3V3', 'V5_ESP', 'VBUS_USB', 'GND', 'LIGHT_D'], 0.35, 0.15),
+    'PWR': (['3V3', '3V3_RX', 'V5_ESP', 'VBUS_USB', 'GND', 'LIGHT_D', 'PANEL', 'PANEL_D'], 0.35, 0.15),
     'USB': (['ESP_DP', 'ESP_DM'], 0.25, 0.15),
 }
 DNP = set()
@@ -224,20 +243,17 @@ def nets():
     return sorted(s)
 
 
-def outline():
-    """floor outline from the CAD (car.floor_outline, cut at the diffuser), y flipped"""
-    from shapely.geometry import Polygon, box
-    poly = Polygon([(x, -y) for x, y in FLOOR['outline']]).buffer(0).intersection(box(FLOOR['diff_x0'], -200, 400, 200))
-    poly = poly.simplify(0.02)
-    return [tuple(map(lambda v: round(v, 4), p)) for p in poly.exterior.coords]
-
-
-def slots():
-    """Pi cooling slots (rounded 4 x 40 mm), same as the acrylic floor"""
-    return [(x0, -20.0, x1, 20.0) for x0, x1 in FLOOR['slots']]
+def outline(inset=0.0, n=8):
+    """rounded rectangle (closed)"""
+    import math
+    x0, y0, x1, y1 = BOARD[0] + inset, BOARD[1] + inset, BOARD[2] - inset, BOARD[3] - inset
+    r = CORNER_R - inset; pts = []
+    for cx, cy, a0 in ((x1 - r, y0 + r, -90), (x1 - r, y1 - r, 0), (x0 + r, y1 - r, 90), (x0 + r, y0 + r, 180)):
+        for i in range(n + 1):
+            a = math.radians(a0 + 90 * i / n); pts.append((round(cx + r * math.cos(a), 4), round(cy + r * math.sin(a), 4)))
+    return pts + pts[:1]
 
 
 if __name__ == '__main__':
-    reg = REGION + REGION[:1]
-    json.dump({'edge': outline(), 'inner': [list(p) for p in reg]}, open(os.path.join(HERE, 'outline.json'), 'w'))
+    json.dump({'edge': outline(), 'inner': outline(0.3)}, open(os.path.join(HERE, 'outline.json'), 'w'))
     print('outline.json written')

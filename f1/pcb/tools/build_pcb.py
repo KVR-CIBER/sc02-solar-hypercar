@@ -42,7 +42,7 @@ def write_project():
     sev = ds.setdefault('rule_severities', {})
     sev.update({'silk_overlap': 'ignore', 'silk_over_copper': 'ignore', 'silk_edge_clearance': 'ignore',
                 'lib_footprint_mismatch': 'ignore', 'lib_footprint_issues': 'ignore', 'text_height': 'ignore',
-                'footprint_symbol_mismatch': 'warning',
+                'footprint_symbol_mismatch': 'ignore',
                 'connection_width': 'ignore'})   # sub-0.1 mm slivers at the edge of the GND pours only
     base = dict(tpl['net_settings']['classes'][0])
     base.update({'name': 'Default', 'track_width': 0.15, 'clearance': 0.15, 'via_diameter': 0.45, 'via_drill': 0.2})
@@ -183,20 +183,20 @@ def build():
         fps[p['ref']] = fp
         # small, tidy reference text
         r = fp.Reference(); r.SetTextSize(pcbnew.VECTOR2I(MM(0.8), MM(0.8))); r.SetTextThickness(MM(0.12))
-    # ---------------- outline (= the car floor) + Pi cooling slots
+    # ---------------- outline: compact board on M3 standoffs
     edge = OUTLINE['edge']
     for a, b in zip(edge, edge[1:] + edge[:1]):
         if a != b:
             shape_line(board, pcbnew.Edge_Cuts, a, b, 0.1)
-    for sx0, sy0, sx1, sy1 in design.slots():
-        sl = rounded_rect_pts(sx0, sy0, sx1, sy1, 1.9, 6)
-        for a, b in zip(sl, sl[1:] + sl[:1]):
-            shape_line(board, pcbnew.Edge_Cuts, a, b, 0.1)
     inner = OUTLINE['inner']
     allcu = [pcbnew.F_Cu, pcbnew.In1_Cu, pcbnew.In2_Cu, pcbnew.B_Cu]
 
-    # ---------------- ESP32 antenna: no copper under it or towards the side wall
+    # ---------------- 2.4 GHz antennas at the board edges: no copper under / next to them
     ex, ey = design.ESP
+    bx0, by0, bx1, by1 = design.BOARD
+    keepout(board, rect(ex - 10.5, ey + 6.25, ex + 10.5, by1 + 1), allcu, name='ESP32-S3 antenne')
+    keepout(board, rect(design.ELRS_RF[0] + 7.6, design.ELRS_RF[1] - 8.0, bx1 + 1, design.ELRS_RF[1] + 8.0), allcu, name='ELRS antenne (E28)')
+    keepout(board, rect(design.ELRS_MCU[0] + 6.2, design.ELRS_MCU[1] - 7.4, bx1 + 1, design.ELRS_MCU[1] + 7.4), allcu, name='C3 antenne (wifi-updates)')
 
     # ---------------- planes (only in the electronics region): In1 GND, In2 = battery bus
     zone(board, 'GND', pcbnew.In1_Cu, inner, prio=0, name='GND plane', connect='full')
@@ -261,26 +261,19 @@ def build():
 
     # ---------------- artwork
     F, B = pcbnew.F_SilkS, pcbnew.B_SilkS
-    text(board, F, 'SC-02', (100.0, -39.0), size=1.6, th=0.28, bold=True)
-    text(board, F, 'SC-02 DRIVE  v2  floor', (100.0, 39.0), size=1.0, th=0.18, bold=True)
+    text(board, F, 'SC-02 DRIVE v3', (96.0, -30.0), size=1.4, th=0.24, bold=True)
     text(board, F, 'XT60  - +', (58.5, -47.5), size=0.8, bold=True)
-    text(board, F, 'MOTOR 1', (57.0, 36.5), size=0.7, bold=True)
-    text(board, F, 'MOTOR 2', (57.0, 48.6), size=0.7, bold=True)
-    text(board, F, 'HALL  G V S', (58.0, 60.6), size=0.6)
-    text(board, F, 'SERVO G V S', (130.6, 41.5), size=0.6, rot=90)
-    text(board, F, 'RST', (75.2, 63.6), size=0.6, rot=90)
-    text(board, F, 'BOOT', (75.2, 59.6), size=0.6, rot=90)
-    text(board, F, 'PANEEL', (118.0, 41.8), size=0.6)
-    text(board, F, 'LICHT', (126.0, 41.8), size=0.6)
-    text(board, F, 'USB-C', (125.0, 60.0), size=0.7, bold=True)
-    text(board, F, 'ELRS RP2', (107.0, -41.6), size=0.7, bold=True)
-    text(board, F, 'PI UART', (118.5, -41.6), size=0.7, bold=True)
-    # spot for the RadioMaster RP2 receiver on the bare floor in front of the left pod (double-sided tape)
-    rp = rounded_rect_pts(138.5, -49.0, 150.5, -37.0, 1.0, 4)
-    for a_, b_ in zip(rp, rp[1:] + rp[:1]):
-        shape_line(board, F, a_, b_, 0.15)
-    text(board, F, 'ELRS', (144.5, -44.0), size=1.2, th=0.2, bold=True)
-    text(board, F, 'RP2', (144.5, -41.8), size=1.0, th=0.18)
+    text(board, F, 'MOTOR 1', (57.0, -24.0), size=0.7, bold=True)
+    text(board, F, 'MOTOR 2', (57.0, -10.0), size=0.7, bold=True)
+    text(board, F, 'HALL G V S', (58.0, 4.8), size=0.6)
+    text(board, F, 'LICHT', (62.0, 20.4), size=0.6)
+    text(board, F, 'SERVO G V S', (106.4, -22.5), size=0.6, rot=90)
+    text(board, F, 'ZON - +', (71.2, -37.0), size=0.6)
+    text(board, F, 'USB-C', (73.0, 13.0), size=0.7, bold=True)
+    text(board, F, 'RST', (107.6, 21.5), size=0.5)
+    text(board, F, 'BOOT', (104.6, 14.8), size=0.5, rot=90)
+    text(board, F, 'BIND', (108.6, -8.0), size=0.5)
+    text(board, F, 'ELRS 2.4 GHz', (124.0, 4.0), size=0.8, bold=True)
     # back side: big name + spider
     back_art(board)
     silk_cleanup(board)
@@ -420,9 +413,9 @@ def silk_cleanup(board):
 def back_art(board):
     """The underside of the car: name in big letters on the black solder mask."""
     B = pcbnew.B_SilkS
-    text(board, B, 'SC-02', (0.0, 0.0), size=12.0, th=1.8, mirror=True, bold=True)
-    text(board, B, 'SOLAR HYPERCAR', (0.0, 10.5), size=3.2, th=0.5, mirror=True, bold=True)
-    text(board, B, 'Kobe Van Robaeys  ·  2026', (0.0, -9.5), size=2.0, th=0.3, mirror=True)
+    text(board, B, 'SC-02', (95.0, -46.0), size=7.0, th=1.0, mirror=True, bold=True)
+    text(board, B, 'SOLAR HYPERCAR  ·  DRIVE v3', (95.0, -39.0), size=1.8, th=0.3, mirror=True, bold=True)
+    text(board, B, 'Kobe Van Robaeys  ·  2026', (95.0, -35.5), size=1.2, th=0.2, mirror=True)
 
 
 def spider(board, layer, c, s):

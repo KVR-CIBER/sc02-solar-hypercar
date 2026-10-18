@@ -3,13 +3,13 @@ XT60,J1,AMASS_XT60-M_1x02_P7.20mm_Vertical,1,"AMASS XT60-M (male, vertical): the
 10A,F1,R_2512_6332Metric,1,"2410FA-10A (fast 10 A, 2410 body on 2512 pads)",C2838934
 SCHAKELAAR,J11,SolderWire_2pad_P5mm_SW,1,solder pads for the power switch (mounted from below in the 6.2 mm hole),"(solder pads, no part)"
 AOD4185,Q1,TO-252-2,1,"AOD4185 (P-MOSFET 40 V 40 A, reverse polarity)",C400894
-10k,"R1,R11,R12,R19",R_0603_1608Metric,4,0603 10k 1%,C25804
+10k,"R1,R11,R12,R19,R31,R32",R_0603_1608Metric,6,0603 10k 1%,C25804
 BZT52C15,D2,D_SOD-123,1,BZT52C15 (gate clamp),C173427
 2m,RS1,R_2512_6332Metric,1,2512 2 mOhm 2 W current shunt,C160590
 SMBJ15CA,D1,D_SMB,1,SMBJ15CA,C78410
 100u 25V,C1,CP_Elec_6.3x7.7,1,100uF 25V 6.3x7.7 alu,C72477
 INA226,U6,TSSOP-10_3x3mm_P0.5mm,1,INA226AIDGSR (0x40),C49851
-100n,"C2,C7,C8,C21,C23,C16,C18",C_0603_1608Metric,7,0603 100n X7R ceramic,C14663
+100n,"C2,C7,C8,C21,C23,C16,C18,C32,C34",C_0603_1608Metric,9,0603 100n X7R ceramic,C14663
 TPS54560B,U1,Texas_R-PDSO-G8_EP2.95x4.9mm_Mask2.4x3.1mm_ThermalVias,1,TPS54560BDDAR,C1850354
 10u 25V,"C5,C6,C20,C22",C_1206_3216Metric,4,1206 10u 25V X5R ceramic,C9807
 442k,R4,R_0603_1608Metric,1,0603 442k 1%,C23175
@@ -25,7 +25,6 @@ B560C,D4,D_SMC,1,B560C (5 A 60 V Schottky),C85100
 47p,C13,C_0603_1608Metric,1,0603 47p X7R ceramic,C1671
 groen 5V,D5,LED_0603_1608Metric,1,LED 0603 green,C12624
 2k2,R10,R_0603_1608Metric,1,0603 2k2 1%,C4190
-5V PI,J13,SolderWire_2pad_P5mm_5V,1,solder pads: 5 V 3 A to the Pi 4 (GPIO pin 2/4 + 6),"(solder pads, no part)"
 I2C,J7,JST_SH_SM04B-SRSS-TB_1x04-1MP_P1.00mm_Horizontal,1,JST SM04B-SRSS-TB (Qwiic / STEMMA QT),C160404
 4k7,"R24,R25",R_0603_1608Metric,2,0603 4k7 1%,C23162
 DRV8871,"U4,U5",Texas_HTSOP-8-1EP_3.9x4.9mm_P1.27mm_EP2.95x4.9mm_Mask2.4x3.1mm_ThermalVias,2,DRV8871DDAR (3.6 A H-bridge),C75864
@@ -34,24 +33,33 @@ MOTOR 1,J2,SolderWire_2pad_P5mm_M,1,"solder pads, motor leads","(solder pads, no
 MOTOR 2,J3,SolderWire_2pad_P5mm_M,1,"solder pads, motor leads","(solder pads, no part)"
 SS14,"D6,D7",D_SMA,2,SS14,C2480
 AMS1117-3.3,U2,SOT-223-3_TabPin2,1,AMS1117-3.3,C6186
-10u,C14,C_0805_2012Metric,1,0805 10u X5R ceramic,C15850
-22u,"C15,C17",C_0805_2012Metric,2,0805 22u X5R ceramic,C29277
+10u,"C14,C30,C33",C_0805_2012Metric,3,0805 10u X5R ceramic,C15850
+22u,"C15,C17,C31",C_0805_2012Metric,3,0805 22u X5R ceramic,C29277
 ESP32-S3-WROOM-1-N16R8,U3,ESP32-S3-WROOM-1,1,ESP32-S3-WROOM-1-N16R8,C2913202
-1u,"C19,C29",C_0603_1608Metric,2,0603 1u X5R ceramic,C15849
+1u,"C19,C29,C35",C_0603_1608Metric,3,0603 1u X5R ceramic,C15849
 RESET,SW1,SW_Push_1P1T_NO_CK_KMR2,1,CK KMR221G (4.2x2.8 tact),C72443
 BOOT,SW2,SW_Push_1P1T_NO_CK_KMR2,1,CK KMR221G (4.2x2.8 tact) - also the race-mode button,C72443
 geel ESP,D8,LED_0603_1608Metric,1,LED 0603 yellow,C2287
-1k,"R13,R16,R17",R_0603_1608Metric,3,0603 1k 1%,C21190
-USB-C,J8,USB_C_Receptacle_HRO_TYPE-C-31-M-12,1,HRO TYPE-C-31-M-12 (at the floor edge: reachable through the body side),C165948
+1k,R13,R_0603_1608Metric,1,0603 1k 1%,C21190
+USB-C,J8,USB_C_Receptacle_HRO_TYPE-C-31-M-12,1,HRO TYPE-C-31-M-12 (board edge),C165948
 5k1,"R27,R28",R_0603_1608Metric,2,0603 5k1 1%,C23186
 USBLC6-2SC6,U10,SOT-23-6,1,USBLC6-2SC6,C2687116
 SERVO,J4,PinHeader_1x03_P2.54mm_Vertical,1,"1x3 pin header 2.54 (MG90S: brown GND, red 5 V, orange signal)",C49257
 100,"R18,R29,R30",R_0603_1608Metric,3,0603 100 1%,C22775
 HALL,J5,PinHeader_1x03_P2.54mm_Vertical,1,"1x3 pin header 2.54 (A3144: GND, 5 V, out)",C49257
-ZONNEPANEEL,J6,SolderWire_2pad_P4mm_S,1,"solder pads, solar panel 5 V (measured only)","(solder pads, no part)"
+ZONNEPANEEL,J6,JST_XH_B2B-XH-A_1x02_P2.50mm_Vertical,1,JST XH 2-pin (B2B-XH-A): plug the solar panel in (5 V 1 W),C158012
 100k,"R22,R26",R_0603_1608Metric,2,0603 100k 1%,C25803
 33k,R23,R_0603_1608Metric,1,0603 33k 1%,C4216
+SS14,D9,D_SMA,1,SS14 (solar -> 5 V),C2480
+ZON>5V,JP1,SolderJumper-2_P1.3mm_Open_RoundedPad1.0x1.5mm,1,solder jumper (open): solar panel feeds the 5 V rail,"(solder jumper, no part)"
 LICHTEN,J10,SolderWire_2pad_P4mm_S,1,"solder pads, LED lights 5 V (with their own resistors), low-side switched","(solder pads, no part)"
 AO3400A,Q4,SOT-23,1,AO3400A,C20917
-ELRS RP2,J12,Pads_ELRS_RX,1,solder pads for a RadioMaster RP2 ELRS receiver (stick it on the marked spot),"(solder pads, no part)"
-PI UART,J9,Pads_PI_UART,1,"solder pads: wires to the Pi 4 header (pin 6 GND, pin 8 TXD, pin 10 RXD)","(solder pads, no part)"
+ESP32-C3-MINI-1-N4,U11,WIFIM-SMD_ESP32-C3-MINI-1,1,"ESP32-C3-MINI-1-N4 (ELRS receiver MCU, flash ""Generic C3 2400"")",C2838502
+E28-2G4M12S,U12,WIRELM-SMD_E28-2G4M12S,1,"Ebyte E28-2G4M12S (SX1280 2.4 GHz, 12.5 dBm, PCB antenna)",C411310
+AMS1117-3.3,U13,SOT-223-3_TabPin2,1,AMS1117-3.3 (receiver supply),C6186
+10k,R33,R_0603_1608Metric,1,0603 10k (IO8 strapping pin high at boot),C25804
+1k,R34,R_0603_1608Metric,1,0603 1k (S3 can reset the receiver),C21190
+1k,R35,R_0603_1608Metric,1,0603 1k (S3 can start the receiver bootloader),C21190
+BIND,SW3,SW_Push_1P1T_NO_CK_KMR2,1,CK KMR221G: ELRS bind / bootloader button,C72443
+SK6812MINI-E,D10,LED-SMD_4P-L3.2-W2.8-LS5.9_SK6812MINI-E,1,"SK6812MINI-E (ELRS status LED, RGB)",C5149201
+RX USB,J12,Pads_RX_USB,1,test pads: USB D-/D+/GND of the receiver C3 (first flash),"(test pads, no part)"

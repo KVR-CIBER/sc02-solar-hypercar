@@ -148,6 +148,25 @@ def fix_vias(refill=True):
     print('vias fixed:', n)
 
 
+def clean_vias():
+    """Remove stitching/fan-out vias that ended up in a via keep-out (antennas), then refill."""
+    b = pcbnew.LoadBoard(PCB); rm = []
+    kos = [z for z in b.Zones() if z.GetIsRuleArea() and z.GetDoNotAllowVias()]
+    ends = set()
+    for t in b.GetTracks():
+        if t.GetClass() == 'PCB_TRACK':
+            ends.add((t.GetStart().x, t.GetStart().y)); ends.add((t.GetEnd().x, t.GetEnd().y))
+    for v in b.GetTracks():
+        if v.GetClass() == 'PCB_VIA' and (v.GetPosition().x, v.GetPosition().y) not in ends:
+            if any(z.Outline().Contains(v.GetPosition()) for z in kos):
+                rm.append(v)
+    for v in rm:
+        b.Remove(v)
+    pcbnew.ZONE_FILLER(b).Fill(b.Zones())
+    pcbnew.SaveBoard(PCB, b)
+    print('vias in keep-outs removed:', len(rm))
+
+
 if __name__ == '__main__':
-    {'export': export, 'import_raw': import_raw, 'finish': do_import, 'fixvias': fix_vias}[sys.argv[1]]()
+    {'export': export, 'import_raw': import_raw, 'finish': do_import, 'fixvias': fix_vias, 'cleanvias': clean_vias}[sys.argv[1]]()
     sys.stdout.flush(); os._exit(0)   # KiCad's SWIG objects can crash Python at shutdown

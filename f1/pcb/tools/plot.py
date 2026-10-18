@@ -24,5 +24,5 @@ for i, a in enumerate(d):
         if A[0] < B[2] and B[0] < A[2] and A[1] < B[3] and B[1] < A[3]:
             ov.append((a['ref'], b['ref']))
 print('overlaps:', ov)
-ax.set_xlim(50, 140); ax.set_ylim(70, -70); ax.grid(alpha=.3); ax.set_xticks(range(50, 141, 5)); ax.set_yticks(range(-70, 71, 5))
+ax.set_xlim(48, 142); ax.set_ylim(26, -72); ax.grid(alpha=.3); ax.set_xticks(range(50, 141, 5)); ax.set_yticks(range(-70, 71, 5))
 fig.savefig(png, dpi=70, bbox_inches='tight')

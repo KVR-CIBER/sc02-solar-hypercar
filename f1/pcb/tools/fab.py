@@ -10,7 +10,8 @@ FAB = os.path.join(PRJ, 'fab')
 
 
 # JLCPCB / LCSC part numbers, checked for stock on 2026-10-17 (tools/jlc_stock.py)
-LCSC = {'AOD4185': 'C400894', 'BZT52C15': 'C173427', 'SMBJ15CA': 'C78410', '330u 25V': 'C350008', '10u 25V': 'C9807',
+LCSC = {'BIND': 'C72443', 'E28-2G4M12S': 'C411310', 'ESP32-C3-MINI-1-N4': 'C2838502', 'SK6812MINI-E': 'C5149201',
+        'RX USB': '(test pads, no part)', 'ZON>5V': '(solder jumper, no part)', 'AOD4185': 'C400894', 'BZT52C15': 'C173427', 'SMBJ15CA': 'C78410', '330u 25V': 'C350008', '10u 25V': 'C9807',
         '100n': 'C14663', '442k': 'C23175', '90.9k': 'C23129', '243k': 'C23351', '6.8u': 'C20804570', 'B560C': 'C85100',
         '47u 10V': 'C84494', '53.6k': 'C23074', '10.2k': 'C22772', '16.9k': 'C25954', '4n7': 'C53987', '47p': 'C1671',
         'groen 5V': 'C12624', 'groen ACT': 'C12624', 'blauw ESP': 'C2288', '2k2': 'C4190', 'SS14': 'C2480',
@@ -24,7 +25,7 @@ LCSC = {'AOD4185': 'C400894', 'BZT52C15': 'C173427', 'SMBJ15CA': 'C78410', '330u
         'DRV8871': 'C75864', 'INA226': 'C49851', '2m': 'C160590', '100u 25V': 'C72477', 'AO3400A': 'C20917', '18k': 'C25810',
         '100': 'C22775', '33k': 'C4216', 'XT60': 'C98733', '10A': 'C2838934', 'USB-C': 'C165948', 'ELRS RP2': '(solder pads, no part)', 'PI UART': '(solder pads, no part)', 'SCHAKELAAR': '(solder pads, no part)', 'SERVO': 'C49257', 'HALL': 'C49257', 'I2C': 'C160404',
         'geel ESP': 'C2287', 'USB-C': 'C165948', 'BAT 3S': '(solder pads, no part)', 'MOTOR 1': '(solder pads, no part)',
-        'MOTOR 2': '(solder pads, no part)', 'ZONNEPANEEL': '(solder pads, no part)', 'LICHTEN': '(solder pads, no part)'}
+        'MOTOR 2': '(solder pads, no part)', 'ZONNEPANEEL': 'C158012', 'LICHTEN': '(solder pads, no part)'}
 
 
 def lcsc(value):
