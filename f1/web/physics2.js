@@ -20,11 +20,11 @@ export function createVehicle(o = {}) {
     // with the current from the INA226: two 130 motors ~28 J/K, ~10 K/W to the air (better with airflow).
     boostGain: 1.6, Cth: 28, Rth: 10, Tamb: 22, Tlock: 90, Trearm: 70, vCellMin: 3.5, vCellRearm: 3.65,
     boostFull: true,                 // maximum boost: 100 % duty = the full battery voltage on the motors
-    Ilim: 2 * 64 / 18,               // DRV8871 hardware current limit, ILIM 18k: 3.55 A per motor (two motors)
+    Ilim: 2 * 6.0,                   // DRV8874 current regulation (IPROPI/VREF) set to 6 A per motor (two motors)
     rpmMax: 38000,
-    // DRV8871 heating: Rds(on) high + low side 0.565 ohm, HSOP-8 on a 4-layer board ~35 K/W, ~0.8 J/K; its own
+    // motor driver heating (was DRV8871: 0.565 ohm, 3.55 A - too hot). Now DRV8874: 0.2 ohm, 6 A. HSOP-8 on a 4-layer board ~35 K/W, ~0.8 J/K; its own
     // thermal shutdown is ~175 C. The firmware estimates this from the INA226 current and stops boost first.
-    rdsDrv: 0.565, RthDrv: 35, CthDrv: 0.8, TdrvLock: 140, TdrvRearm: 100, TdrvShutdown: 170,                   // firmware speed guard: brushed 130 motors (bushings, commutator) above ~38k rpm wear out fast
+    rdsDrv: 0.2, RthDrv: 18, CthDrv: 2.0, TdrvLock: 140, TdrvRearm: 100, TdrvShutdown: 170,   // DRV8874 (HTSSOP-16 PowerPAD) + small stick-on heatsink                   // firmware speed guard: brushed 130 motors (bushings, commutator) above ~38k rpm wear out fast
     ...o,
   };
   const bat = BATTERIES[c.battery];
