@@ -16,6 +16,7 @@
 <section id="power">
   <div class="spd"><span id="kmh">0</span><small>km/h</small></div>
   <div class="bat"><div class="cell"><i id="soc"></i></div><span id="vb">0.0</span><small>V</small><span class="tot" id="ptot">0.0</span><small>W</small></div>
+  <div id="boost"><span id="bstate">boost klaar</span><div class="b"><i id="btm"></i></div><span><b id="tmp">22</b>°C</span></div>
   <div class="rows">
     <div class="r"><svg viewBox="0 0 24 24"><path d="M4 12h3l2-5 4 10 2-5h5"/></svg><div class="b"><i id="bm"></i></div><span id="pm">0.0</span></div>
     <div class="r"><svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/><path d="M9 1v4M15 1v4M9 19v4M15 19v4M1 9h4M1 15h4M19 9h4M19 15h4"/></svg><div class="b"><i id="bp"></i></div><span id="pp">0.0</span></div>
@@ -30,6 +31,8 @@
   <button id="bcam" title="camera (C)"><svg viewBox="0 0 24 24"><path d="M3 7h4l2-3h6l2 3h4v13H3z"/><circle cx="12" cy="13" r="4"/></svg></button>
   <button id="bset" title="instellingen"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg></button>
   <a id="bdl" href="files/" title="downloads"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 20h16"/></svg></a>
+  <button id="brc" title="controller (RadioMaster Pocket)"><svg viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="11" rx="4"/><path d="M8 11v4M6 13h4M12 3v5"/><circle cx="16" cy="12" r="1"/><circle cx="17.5" cy="15" r="1"/></svg></button>
+  <button id="bsnd" title="geluid"><svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="w" d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg></button>
   <button id="bres" title="reset (R)"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 3-6.2"/><path d="M4 3v5h5"/></svg></button>
 </nav>
 
@@ -43,6 +46,14 @@
   <div class="grp"><div class="sw" id="paint"><i data-c="#c4091d" class="on"></i><i data-c="#0d0f13"></i><i data-c="#e9ecef"></i><i data-c="#0b3d91"></i><i data-c="#f28a00"></i><i data-c="#0e6b4f"></i></div></div>
 </aside>
 
+<aside id="rcpanel" class="hidden">
+  <h3>Controller</h3>
+  <p id="rcstat"></p>
+  <p class="hint">RadioMaster Pocket: USB-kabel in de Mac → kies op de Pocket <b>USB Joystick (HID)</b>. Boost = een schakelaar naar keuze (bv. de achterste). Toetsenbord: Shift = boost.</p>
+  <div id="rclive"></div>
+  <p id="rcmsg"></p>
+  <div class="btns"><button id="rcgo">inleren</button><button id="rcskip">overslaan</button><button id="rcforget">vergeten</button><button id="rcclose">sluiten</button></div>
+</aside>
 <div id="touch"><div id="tsteer"><i></i></div><div id="tgas"></div><div id="tbrake"></div></div>
 <script type="module" src="app.js"></script>
 </body>

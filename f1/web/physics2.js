@@ -14,7 +14,11 @@ export function createVehicle(o = {}) {
     mu: 0.95, B: 8, C: 1.45, muF: 0.9, BF: 6, Crr: 0.015, CdA: 0.0065, ClA: 0.006, rho: 1.2,   // front tyres narrower (15 vs 20 mm): less grip, softer → stable understeer
     steerMax: 20 * Math.PI / 180, steerRate: 9.0,
     battery: "lipo3s", vMotorMax: 4.8, tc: true, launch: true,
-    pPi: 3.4, pEsp: 0.45, pServoIdle: 0.12, convEff: 0.9,
+    pPi: 0, pEsp: 0.6, pServoIdle: 0.12, convEff: 0.9,         // no Pi anymore: ESP32-S3 + ELRS C3 ~0.6 W
+    // boost ("overclock"): the firmware lets the H-bridge put boostGain x the normal motor voltage on the motors, but
+    // only while the motors are cool enough and the battery holds its voltage. Same model runs in the car firmware,
+    // with the current from the INA226: two 130 motors ~28 J/K, ~10 K/W to the air (better with airflow).
+    boostGain: 1.6, Cth: 28, Rth: 10, Tamb: 22, Tlock: 90, Trearm: 70, vCellMin: 3.5, vCellRearm: 3.65,
     ...o,
   };
   const bat = BATTERIES[c.battery];
@@ -26,7 +30,7 @@ export function createVehicle(o = {}) {
   const s = {
     x: 0, y: 0, psi: 0, vx: 0, vy: 0, r: 0, w: 0, delta: 0, soc: 1, t: 0,
     wheelR: 0, wheelF: 0, I: 0, Vbus: 0, P: { motor: 0, pi: 0, esp: 0, servo: 0, total: 0 }, kappa: 0, alphaF: 0, alphaR: 0,
-    ax: 0, ay: 0, duty: 0, speed: 0, energyWh: 0,
+    ax: 0, ay: 0, duty: 0, speed: 0, energyWh: 0, Tm: 22, boost: false, boostLock: '', Pheat: 0,
   };
   const g = 9.81;
   function voc() {
@@ -36,7 +40,8 @@ export function createVehicle(o = {}) {
   function tyre(Fz, slip) { return c.mu * Fz * Math.sin(c.C * Math.atan(c.B * slip)); }
   function tyreF(Fz, slip) { return c.mu * c.muF * Fz * Math.sin(c.C * Math.atan(c.BF * slip)); }
 
-  // input: throttle -1..1 (negative = reverse), brake 0..1, steer -1..1 (left positive)
+  const braking_ = (inp, thr) => inp.brake > 0.05 && Math.abs(thr) < 0.05;
+  // input: throttle -1..1 (negative = reverse), brake 0..1, steer -1..1 (left positive), boost bool
   function step(dt, inp) {
     const V0 = voc();
     // --- steering servo (rate limited)
@@ -51,8 +56,13 @@ export function createVehicle(o = {}) {
     const slipOf = (w) => { const u = w / c.G * c.rRear; return (u - vx) / Math.max(Math.abs(u), Math.abs(vx), 0.3); };
     const kappa0 = slipOf(s.w);
     if (c.tc && Math.abs(kappa0) > 0.18 && Math.sign(kappa0) === Math.sign(thr)) thr *= Math.max(0.35, 1 - (Math.abs(kappa0) - 0.18) * 4);
-    const braking = inp.brake > 0.05 && Math.abs(thr) < 0.05;
-    const Vm = braking ? 0 : thr * Math.min(c.vMotorMax, V0);
+    const braking = braking_(inp, thr);
+    // boost: allowed until the motors are too hot or the battery sags; re-armed when cooled / recovered
+    if (s.boostLock === 'heet' && s.Tm <= c.Trearm) s.boostLock = '';
+    if (s.boostLock === 'batterij' && V0 / bat.cells >= c.vCellRearm && s.soc > 0.12) s.boostLock = '';
+    s.boost = !!inp.boost && !s.boostLock && !braking_(inp, thr);
+    const vLim = c.vMotorMax * (s.boost ? c.boostGain : 1);
+    const Vm = braking_(inp, thr) ? 0 : thr * Math.min(vLim, V0);
     // brake = slip controller in the firmware (ABS-like): the H-bridge servoes the motor to a small
     // negative slip instead of locking the rear. Less slip while steering, so the tail keeps its grip.
     let wT = 0;
@@ -96,6 +106,10 @@ export function createVehicle(o = {}) {
     const sh = shaft(s.w);
     const FxR = sh.Fx, FyR = sh.Fy, kappa = sh.k, uSurf = s.w / c.G * c.rRear;
     const Pm = Math.max(0, (braking ? sh.V : Vm) * sh.Im);
+    // --- motor temperature: copper losses I^2 R + brush/iron losses, cooled by the air (more with speed)
+    s.Pheat = sh.Im * sh.Im * mot.R + Math.abs(mot.ke * mot.I0 * s.w) * 0.5;
+    s.Tm += dt * (s.Pheat - (s.Tm - c.Tamb) * (1 + 0.08 * Math.abs(vx)) / c.Rth) / c.Cth;
+    if (s.Tm >= c.Tlock) s.boostLock = 'heet';
     const FyF = tyreF(FzF, alphaF);
     // --- body (vehicle frame)
     const drag = 0.5 * c.rho * c.CdA * vx * Math.abs(vx);
@@ -117,6 +131,7 @@ export function createVehicle(o = {}) {
     s.I = I; s.duty = Math.abs(thr);
     s.P = { motor: Pm, pi: c.pPi, esp: c.pEsp, servo: servoP, total: Pel };
     s.soc = Math.max(0, s.soc - I * dt / 3.6 / bat.mAh);
+    if (s.boost && (s.Vbus / bat.cells < c.vCellMin || s.soc < 0.1)) s.boostLock = 'batterij';
     s.energyWh += Pel * dt / 3600;
     s.wheelR += uSurf / c.rRear * dt; s.wheelF += s.vx / c.rFront * dt;
     s.kappa = kappa; s.alphaF = alphaF; s.alphaR = alphaR; s.speed = Math.hypot(s.vx, s.vy); s.t += dt;

@@ -4,6 +4,8 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { Sky } from "three/addons/objects/Sky.js";
 import { createVehicle } from "./physics2.js";
+import { rc, bindRcPanel } from "./rc.js";
+import { createAudio } from "./audio.js";
 
 const $ = (id) => document.getElementById(id);
 const Q = new URLSearchParams(location.search);
@@ -483,14 +485,22 @@ function lagAt(t) {                                      // car side: what the E
   return lagHeld;
 }
 function readInput() {
-  let thr = 0, brk = 0, steer = 0;
+  let thr = 0, brk = 0, steer = 0, boost = !!(keys.ShiftLeft || keys.ShiftRight);
   if (keys.KeyW || keys.ArrowUp) thr = 1;
   if (keys.KeyS || keys.ArrowDown) { if (veh.s.vx > 0.4) brk = 1; else thr = -0.6; }
   if (keys.KeyA || keys.ArrowLeft) steer += 1;
   if (keys.KeyD || keys.ArrowRight) steer -= 1;
   if (keys.Space) brk = 1;
+  const r = rc.read();                                   // RadioMaster Pocket as USB joystick (learned mapping)
+  if (r) {
+    if (Math.abs(r.steer) > 0.02 || Math.abs(r.thr) > 0.03 || r.boost) lastInput = performance.now();
+    if (r.thr > 0) thr = Math.max(thr, r.thr);
+    else if (r.thr < 0) { if (veh.s.vx > 0.4) brk = Math.max(brk, -r.thr); else thr = 0.6 * r.thr; }
+    steer += r.steer; boost = boost || r.boost;
+  }
   for (const gp of navigator.getGamepads ? navigator.getGamepads() : []) {
-    if (!gp) continue;
+    if (!gp || (rc.map && gp.id === rc.map.id)) continue;
+    if (gp.buttons[5]?.pressed) boost = true;          // RB = boost on an Xbox-style pad
     const rt = gp.buttons[7]?.value || 0, lt = gp.buttons[6]?.value || 0, sx = Math.abs(gp.axes[0]) > 0.08 ? gp.axes[0] : 0;
     if (rt > 0.02 || lt > 0.02 || sx) lastInput = performance.now();
     thr = Math.max(thr, rt);
@@ -504,7 +514,7 @@ function readInput() {
   // speed-sensitive steering (same limiter as the ESP firmware) + smoothing for digital keys
   const v = Math.abs(veh.s.vx), lim = Math.max(0.22, Math.min(1, 2.2 / (v + 0.6)));
   steerSm += (Math.max(-1, Math.min(1, steer)) * lim - steerSm) * Math.min(1, lastDt * 9);
-  return { throttle: thr, brake: brk, steer: steerSm };
+  return { throttle: thr, brake: brk, steer: steerSm, boost };
 }
 
 // autopilot (demo when nobody drives + used for the video)
@@ -656,12 +666,24 @@ function hud() {
   $("soc").style.background = s.soc > 0.3 ? "#33d17a" : s.soc > 0.12 ? "#f6c344" : "#ff3b30";
   const bars = [["pm", "bm", P.motor, 30], ["pp", "bp", P.pi, 6], ["pe", "be", P.esp, 2], ["ps", "bs", P.servo, 3]];
   for (const [t, b, v, mx] of bars) { $(t).textContent = fx(v, 1); $(b).style.width = Math.min(100, (v / mx) * 100) + "%"; }
+  const T = s.Tm, c = veh.c;
+  $("tmp").textContent = Math.round(T); $("btm").style.width = Math.min(100, Math.max(0, (T - c.Tamb) / (c.Tlock - c.Tamb) * 100)) + "%";
+  $("btm").style.background = T < c.Trearm ? "#33d17a" : T < c.Tlock - 6 ? "#f6c344" : "#ff3b30";
+  const bx = $("boost"); bx.classList.toggle("on", s.boost); bx.classList.toggle("lock", !!s.boostLock);
+  $("bstate").textContent = s.boostLock === "heet" ? "TE HEET" : s.boostLock === "batterij" ? "BATTERIJ" : s.boost ? "BOOST" : "boost klaar";
   $("lt").textContent = TRACK === "recht" ? `${Math.round(Math.max(0, s.x + odoOff))} m` : fmt(Math.max(0, s.t - lapStart));
 }
 
 // ------------------------------------------------------------------ settings
 function seg(id, cb) { $(id).addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; [...$(id).children].forEach((x) => x.classList.toggle("on", x === b)); cb(b.dataset.v); }); }
 $("bset").onclick = () => $("sheet").classList.toggle("hidden");
+bindRcPanel($);
+const audio = createAudio();
+const sndIcon = () => $("bsnd").classList.toggle("off", audio.muted);
+sndIcon();
+$("bsnd").onclick = () => { audio.start(); audio.setMuted(!audio.muted); sndIcon(); };
+const wake = () => { if (!audio.muted) audio.start(); };       // browsers only allow sound after a click / key
+addEventListener("pointerdown", wake); addEventListener("keydown", wake);
 $("bcam").onclick = () => nextCam();
 $("bres").onclick = () => resetCar();
 seg("sbat", (v) => { cfg.battery = v; resetCar(); });
@@ -712,7 +734,7 @@ function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   if (!VIDEO && veh) {
     if (!window.__freeze) step(dt);
-    poseCar(); smoke(dt); updateCamera(dt); hud(); drawMap();
+    poseCar(); smoke(dt); updateCamera(dt); hud(); drawMap(); audio.update(veh.s, veh.c, veh.s.boost);
     sun.position.copy(car.position).addScaledVector(sunDir, 12); sun.target.position.copy(car.position);
     renderer.render(scene, camera);
   }

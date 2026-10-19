@@ -63,3 +63,31 @@ body.render #dock, body.render #sheet, body.render #touch, body.render #map { di
 body.render #power { transform: scale(1.75); transform-origin: bottom left; left: 3vw; bottom: 4vh; }
 body.render #lap { transform: translateX(-50%) scale(1.8); top: 4vh; }
 body.render.clean #power, body.render.clean #lap { display: none; }
+
+/* boost + motor temperature */
+#boost { display: flex; align-items: center; gap: 8px; margin: 4px 0 8px; font: 600 11px/1 system-ui; letter-spacing: .06em; color: rgba(255,255,255,.55); text-transform: uppercase; }
+#boost .b { flex: 1; height: 5px; border-radius: 3px; background: rgba(255,255,255,.12); overflow: hidden; }
+#boost .b i { display: block; height: 100%; width: 0; background: #33d17a; transition: width .2s; }
+#boost #bstate { min-width: 78px; }
+#boost.on #bstate { color: #4fc3ff; text-shadow: 0 0 10px #4fc3ff; }
+#boost.lock #bstate { color: #ff3b30; }
+/* controller panel */
+#dock #brc.live { color: #33d17a; }
+#dock #bsnd.off .w { opacity: 0; }
+#dock #bsnd.off { opacity: .55; }
+#rcpanel { position: fixed; right: 84px; bottom: 24px; width: 340px; padding: 16px 18px; border-radius: 16px; background: rgba(12,14,19,.9);
+  backdrop-filter: blur(14px); color: #e9ecef; font: 13px/1.45 system-ui; z-index: 20; box-shadow: 0 10px 40px rgba(0,0,0,.4); }
+#rcpanel.hidden { display: none; }
+#rcpanel h3 { margin: 0 0 6px; font-size: 15px; }
+#rcpanel p { margin: 6px 0; }
+#rcpanel .hint { color: rgba(255,255,255,.55); font-size: 12px; }
+#rcpanel #rcmsg { color: #4fc3ff; min-height: 2.6em; }
+#rclive .ax { display: flex; align-items: center; gap: 8px; margin: 3px 0; font: 11px ui-monospace, monospace; color: rgba(255,255,255,.5); }
+#rclive .ax b { position: relative; flex: 1; height: 6px; border-radius: 3px; background: rgba(255,255,255,.1); }
+#rclive .ax i { position: absolute; top: -2px; width: 4px; height: 10px; margin-left: -2px; border-radius: 2px; background: #4fc3ff; }
+#rclive .bt { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+#rclive .bt i { width: 9px; height: 9px; border-radius: 50%; background: rgba(255,255,255,.12); }
+#rclive .bt i.on { background: #33d17a; }
+#rcpanel .btns { display: flex; gap: 6px; flex-wrap: wrap; }
+#rcpanel button { flex: 1; padding: 8px 10px; border: 0; border-radius: 9px; background: rgba(255,255,255,.1); color: inherit; font: 600 12px system-ui; cursor: pointer; }
+#rcpanel button#rcgo { background: #0a84ff; }
