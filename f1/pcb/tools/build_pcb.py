@@ -263,8 +263,8 @@ def build():
     F, B = pcbnew.F_SilkS, pcbnew.B_SilkS
     text(board, F, 'SC-02 DRIVE v3', (96.0, -30.0), size=1.4, th=0.24, bold=True)
     text(board, F, 'XT60  - +', (58.5, -47.5), size=0.8, bold=True)
-    text(board, F, 'MOTOR 1', (57.0, -24.0), size=0.7, bold=True)
-    text(board, F, 'MOTOR 2', (57.0, -10.0), size=0.7, bold=True)
+    text(board, F, 'ESC G - S', (60.0, -19.6), size=0.6, bold=True)
+    text(board, F, 'NTC', (57.6, -9.6), size=0.6, bold=True)
     text(board, F, 'HALL G V S', (58.0, 4.8), size=0.6)
     text(board, F, 'LICHT', (62.0, 20.4), size=0.6)
     text(board, F, 'SERVO G V S', (106.4, -22.5), size=0.6, rot=90)

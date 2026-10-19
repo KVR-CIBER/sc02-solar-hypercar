@@ -24,7 +24,7 @@ LCSC = {'BIND': 'C72443', 'E28-2G4M12S': 'C411310', 'ESP32-C3-MINI-1-N4': 'C2838
         'CM5 (wireless)': 'C6782225 x2 (connectors only)', '12V IN': '(solder pads, no part)', '5V PI': '(solder pads, no part)',
         'DRV8871': 'C75864', 'INA226': 'C49851', '2m': 'C160590', '100u 25V': 'C72477', 'AO3400A': 'C20917', '18k': 'C25810',
         '100': 'C22775', '33k': 'C4216', 'XT60': 'C98733', '10A': 'C2838934', 'USB-C': 'C165948', 'ELRS RP2': '(solder pads, no part)', 'PI UART': '(solder pads, no part)', 'SCHAKELAAR': '(solder pads, no part)', 'SERVO': 'C49257', 'HALL': 'C49257', 'I2C': 'C160404',
-        'geel ESP': 'C2287', 'USB-C': 'C165948', 'BAT 3S': '(solder pads, no part)', 'MOTOR 1': '(solder pads, no part)',
+        'geel ESP': 'C2287', 'USB-C': 'C165948', 'BAT 3S': '(solder pads, no part)', 'ESC': 'C49257', 'ESC TEMP': '(solder pads, no part)', 'MOTOR 1': '(solder pads, no part)',
         'MOTOR 2': '(solder pads, no part)', 'ZONNEPANEEL': 'C158012', 'LICHTEN': '(solder pads, no part)'}
 
 

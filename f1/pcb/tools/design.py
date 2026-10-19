@@ -3,7 +3,7 @@ ExpressLRS 2.4 GHz receiver and a real solar-panel connector. Single source of t
 
   * top half  : XT60, 10 A fuse, power switch pads, P-MOSFET reverse protection, INA226 current sense, 5 V 5 A buck
                 (exactly the proven layout of v2, only the board around it changed);
-  * bottom    : 2x DRV8871 + motor pads, ESP32-S3 (car brain, USB-C), servo / hall / lights / solar panel, and the
+  * bottom    : brushless ESC signal header (+ NTC), ESP32-S3 (car brain, USB-C), servo / hall / lights / solar panel, and the
                 ELRS receiver: ESP32-C3-MINI-1 + Ebyte E28-2G4M12S (SX1280, 12.5 dBm, PCB antenna) wired exactly like
                 ExpressLRS' "Generic C3 2400" target, so the official firmware runs on it without a custom layout.
 The C3 talks CRSF (420 kbaud) to the S3 on IO15/IO16; the S3 can also reset the C3 / put it in bootloader (IO17/IO18).
@@ -109,18 +109,16 @@ P('J7', 'Connector_Generic_MountingPin:Conn_01x04_MountingPin', 'Connector_JST:J
 R('R24', '4k7', 'I2C_SDA', '3V3', l(-8.3, -19.0, 90), G)
 R('R25', '4k7', 'I2C_SCL', '3V3', l(-8.3, -15.8, 90), G)
 
-# ---------------------------------------------------------------- motor drivers (right pod, rear end: short leads to the motors)
-for i, (u, rc, rc2, rl, j, y, in1, in2) in enumerate((('U4', 'C20', 'C21', 'R20', 'J2', -18.0, 4, 5),
-                                                       ('U5', 'C22', 'C23', 'R21', 'J3', -4.0, 6, 7)), 1):
-    G = f'Motor {i} (DRV8871)'
-    P(u, 'Driver_Motor:DRV8871DDA', 'Package_SO:Texas_HTSOP-8-1EP_3.9x4.9mm_P1.27mm_EP2.95x4.9mm_Mask2.4x3.1mm_ThermalVias',
-      'DRV8871', {1: 'GND', 2: f'M{i}_IN2', 3: f'M{i}_IN1', 4: f'M{i}_ILIM', 5: 'VBUS', 6: f'M{i}_A', 7: 'GND', 8: f'M{i}_B', 9: 'GND'},
-      (68.0, y, 0), mpn='DRV8871DDAR (3.6 A H-bridge)', group=G)
-    C(rc, '10u 25V', 'VBUS', 'GND', (74.0, y - 1.0, 90), G, fp=C1206)
-    C(rc2, '100n', 'VBUS', 'GND', (76.2, y - 1.0, 90), G)
-    R(rl, '18k', f'M{i}_ILIM', 'GND', (68.0, y + 3.8, 0), G)
-    P(j, 'Connector_Generic:Conn_01x02', 'sc02:SolderWire_2pad_P5mm_M', f'MOTOR {i}', {1: f'M{i}_A', 2: f'M{i}_B'},
-      (57.0, y - 2.5, 270), mpn='solder pads, motor leads', group=G)
+# ---------------------------------------------------------------- brushless ESC (one 2435 4500 KV motor, 40 A ESC)
+# The ESC takes its power straight from the battery (Y-cable on the XT60), so its 40 A never flows through this board.
+# The board only sends the throttle signal (50 Hz servo PWM, or DShot) on IO4. The ESC's BEC wire is NOT connected.
+G = 'ESC (brushless)'
+P('J2', 'Connector_Generic:Conn_01x03', HDR3, 'ESC', {1: 'GND', 3: 'ESC_SIG'}, (60.0, -16.0, 0),
+  mpn='1x3 pin header 2.54 (ESC signal lead: black GND, red BEC NOT used, white/yellow signal)', group=G)
+R('R20', '100', 'ESC_PWM', 'ESC_SIG', (63.5, -16.0, 90), G)
+P('J3', 'Connector_Generic:Conn_01x02', 'sc02:SolderWire_2pad_P5mm_M', 'ESC TEMP', {1: 'GND', 2: 'ESC_NTC'}, (60.0, -6.0, 270),
+  mpn='solder pads: 10k NTC glued on the ESC / motor can (temperature for the boost limit)', group=G)
+R('R21', '10k', 'ESC_NTC', '3V3', (64.0, -6.0, 90), G, mpn='0603 10k 1% (NTC divider)')
 
 # ---------------------------------------------------------------- ESP32-S3 + 3.3 V
 G = '3,3 V (ESP32 + INA226)'
@@ -135,7 +133,7 @@ C('C16', '100n', '3V3', 'GND', (95.6, -13.6, 0), G)
 G = 'ESP32-S3'
 P('U3', 'RF_Module:ESP32-S3-WROOM-1', 'RF_Module:ESP32-S3-WROOM-1', 'ESP32-S3-WROOM-1-N16R8',
   {1: 'GND', 40: 'GND', 41: 'GND', 2: '3V3', 3: 'ESP_EN',
-   4: 'M1_IN1', 5: 'M1_IN2', 6: 'M2_IN1', 7: 'M2_IN2',      # IO4 IO5 IO6 IO7
+   4: 'ESC_PWM', 5: 'ESC_NTC',                              # IO4 = ESC throttle signal, IO5 = NTC (ADC1)
    17: 'SERVO_PWM', 31: 'HALL', 19: 'LIGHT_G',              # IO9 IO38 IO11
    12: 'PANEL_ADC', 20: 'LED_ESP',                          # IO8 IO12
    39: 'I2C_SDA', 38: 'I2C_SCL',                            # IO1 IO2
@@ -228,7 +226,7 @@ for i, (x, y) in enumerate(MOUNT, 1):
 HOLE_SIZES = [3.2]
 
 NETCLASS = {
-    'POWER12': (['BAT_IN', 'BAT_F', 'VBAT_RAW', 'VBAT_P', 'VBUS', 'M1_A', 'M1_B', 'M2_A', 'M2_B'], 1.0, 0.2),
+    'POWER12': (['BAT_IN', 'BAT_F', 'VBAT_RAW', 'VBAT_P', 'VBUS'], 1.0, 0.2),
     'POWER5': (['V5', 'SW'], 0.6, 0.2),
     'PWR': (['3V3', '3V3_RX', 'V5_ESP', 'VBUS_USB', 'GND', 'LIGHT_D', 'PANEL', 'PANEL_D'], 0.35, 0.15),
     'USB': (['ESP_DP', 'ESP_DM'], 0.25, 0.15),

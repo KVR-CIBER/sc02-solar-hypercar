@@ -16,7 +16,7 @@ for i in 1 2 3; do                           # finish what Freerouting left open
   grep -q "Found 0 unconnected" <($KC pcb drc -o ../out/drc.rpt ../sc02_drive.kicad_pcb) && break
   $PY finisher.py dump 2>/dev/null; $VENV finisher.py route; $PY finisher.py apply 2>/dev/null
 done
-$PY route.py cleanvias 2>/dev/null | grep -v Debug
+$PY route.py cleanvias 2>/dev/null | grep -v Debug || true
 $PY parity.py fixnc 2>/dev/null
 $KC pcb drc --schematic-parity -o ../out/drc.rpt ../sc02_drive.kicad_pcb
 $KC sch erc -o ../out/erc.rpt ../sc02_drive.kicad_sch

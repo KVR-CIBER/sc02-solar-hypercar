@@ -647,22 +647,6 @@
         "pattern": "VBUS"
       },
       {
-        "netclass": "POWER12",
-        "pattern": "M1_A"
-      },
-      {
-        "netclass": "POWER12",
-        "pattern": "M1_B"
-      },
-      {
-        "netclass": "POWER12",
-        "pattern": "M2_A"
-      },
-      {
-        "netclass": "POWER12",
-        "pattern": "M2_B"
-      },
-      {
         "netclass": "POWER5",
         "pattern": "V5"
       },
@@ -877,8 +861,8 @@
     "subpart_id_separator": 0,
     "top_level_sheets": [
       {
-        "filename": "sc02_drive.kicad_sch",
-        "name": "sc02_drive",
+        "filename": "tiltbox.kicad_sch",
+        "name": "tiltbox",
         "uuid": "7218f0a4-396b-4b27-b8c4-5f1c1074c06c"
       }
     ],

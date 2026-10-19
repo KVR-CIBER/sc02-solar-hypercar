@@ -9,9 +9,9 @@ BZT52C15,D2,D_SOD-123,1,BZT52C15 (gate clamp),C173427
 SMBJ15CA,D1,D_SMB,1,SMBJ15CA,C78410
 100u 25V,C1,CP_Elec_6.3x7.7,1,100uF 25V 6.3x7.7 alu,C72477
 INA226,U6,TSSOP-10_3x3mm_P0.5mm,1,INA226AIDGSR (0x40),C49851
-100n,"C2,C7,C8,C21,C23,C16,C18,C32,C34",C_0603_1608Metric,9,0603 100n X7R ceramic,C14663
+100n,"C2,C7,C8,C16,C18,C32,C34",C_0603_1608Metric,7,0603 100n X7R ceramic,C14663
 TPS54560B,U1,Texas_R-PDSO-G8_EP2.95x4.9mm_Mask2.4x3.1mm_ThermalVias,1,TPS54560BDDAR,C1850354
-10u 25V,"C5,C6,C20,C22",C_1206_3216Metric,4,1206 10u 25V X5R ceramic,C9807
+10u 25V,"C5,C6",C_1206_3216Metric,2,1206 10u 25V X5R ceramic,C9807
 442k,R4,R_0603_1608Metric,1,0603 442k 1%,C23175
 90.9k,R5,R_0603_1608Metric,1,0603 90.9k 1%,C23129
 243k,R6,R_0603_1608Metric,1,0603 243k 1%,C23351
@@ -27,10 +27,10 @@ groen 5V,D5,LED_0603_1608Metric,1,LED 0603 green,C12624
 2k2,R10,R_0603_1608Metric,1,0603 2k2 1%,C4190
 I2C,J7,JST_SH_SM04B-SRSS-TB_1x04-1MP_P1.00mm_Horizontal,1,JST SM04B-SRSS-TB (Qwiic / STEMMA QT),C160404
 4k7,"R24,R25",R_0603_1608Metric,2,0603 4k7 1%,C23162
-DRV8871,"U4,U5",Texas_HTSOP-8-1EP_3.9x4.9mm_P1.27mm_EP2.95x4.9mm_Mask2.4x3.1mm_ThermalVias,2,DRV8871DDAR (3.6 A H-bridge),C75864
-18k,"R20,R21",R_0603_1608Metric,2,0603 18k 1%,C25810
-MOTOR 1,J2,SolderWire_2pad_P5mm_M,1,"solder pads, motor leads","(solder pads, no part)"
-MOTOR 2,J3,SolderWire_2pad_P5mm_M,1,"solder pads, motor leads","(solder pads, no part)"
+ESC,J2,PinHeader_1x03_P2.54mm_Vertical,1,"1x3 pin header 2.54 (ESC signal lead: black GND, red BEC NOT used, white/yellow signal)",C49257
+100,"R20,R18,R29,R30",R_0603_1608Metric,4,0603 100 1%,C22775
+ESC TEMP,J3,SolderWire_2pad_P5mm_M,1,solder pads: 10k NTC glued on the ESC / motor can (temperature for the boost limit),"(solder pads, no part)"
+10k,R21,R_0603_1608Metric,1,0603 10k 1% (NTC divider),C25804
 SS14,"D6,D7",D_SMA,2,SS14,C2480
 AMS1117-3.3,U2,SOT-223-3_TabPin2,1,AMS1117-3.3,C6186
 10u,"C14,C30,C33",C_0805_2012Metric,3,0805 10u X5R ceramic,C15850
@@ -45,7 +45,6 @@ USB-C,J8,USB_C_Receptacle_HRO_TYPE-C-31-M-12,1,HRO TYPE-C-31-M-12 (board edge),C
 5k1,"R27,R28",R_0603_1608Metric,2,0603 5k1 1%,C23186
 USBLC6-2SC6,U10,SOT-23-6,1,USBLC6-2SC6,C2687116
 SERVO,J4,PinHeader_1x03_P2.54mm_Vertical,1,"1x3 pin header 2.54 (MG90S: brown GND, red 5 V, orange signal)",C49257
-100,"R18,R29,R30",R_0603_1608Metric,3,0603 100 1%,C22775
 HALL,J5,PinHeader_1x03_P2.54mm_Vertical,1,"1x3 pin header 2.54 (A3144: GND, 5 V, out)",C49257
 ZONNEPANEEL,J6,JST_XH_B2B-XH-A_1x02_P2.50mm_Vertical,1,JST XH 2-pin (B2B-XH-A): plug the solar panel in (5 V 1 W),C158012
 100k,"R22,R26",R_0603_1608Metric,2,0603 100k 1%,C25803

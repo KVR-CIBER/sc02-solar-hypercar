@@ -8,7 +8,7 @@ ExpressLRS 2.4 GHz receiver** for the RadioMaster Pocket, and a real **solar-pan
 |---|---|
 | Power (unchanged from v2) | **XT60**, 10 A fuse, power switch pads, P-MOSFET reverse protection, **INA226** + 2 mOhm shunt, **TPS54560B 5 V 5 A** buck |
 | Car brain | **ESP32-S3-WROOM-1** (antenna at the bottom edge), USB-C at the edge, RESET / BOOT |
-| Motors | **2x DRV8871** (3.6 A limit) + motor pads |
+| Motor | **one brushless 2435 4500 KV + 40 A ESC** (11:35). The ESC takes its power straight from the battery (Y-cable on the XT60); this board only sends the throttle signal (**ESC** header, IO4) and reads a 10k NTC on the ESC/motor (**ESC TEMP**, IO5) for the boost limit |
 | **ExpressLRS receiver** | **ESP32-C3-MINI-1** + **Ebyte E28-2G4M12S** (SX1280, 12.5 dBm, PCB antenna at the right edge), own 3.3 V LDO, RGB status LED, BIND button |
 | Connectors | servo (MG90S), hall (A3144), lights (switched 5 V), **solar panel JST-XH 2-pin**, Qwiic I2C |
 
@@ -31,7 +31,7 @@ helps the 5 V rail through a Schottky diode. Only close it with a panel whose op
 ## ESP32-S3 pins
 | GPIO | | GPIO | |
 |---|---|---|---|
-| 4 / 5 | motor 1 IN1 / IN2 | 6 / 7 | motor 2 IN1 / IN2 |
+| 4 | ESC throttle (servo PWM / DShot) | 5 | ESC/motor NTC (ADC) |
 | 9 | servo | 38 | hall |
 | 15 / 16 | CRSF TX / RX (receiver) | 17 / 18 | receiver EN / BOOT |
 | 1 / 2 | I2C SDA / SCL (INA226 0x40 + Qwiic) | 8 | solar panel voltage |
@@ -39,4 +39,5 @@ helps the 5 V rail through a Schottky diode. Only close it with a panel whose op
 
 ## Still to do
 * Car CAD: floor back to acrylic + 4 standoff holes for this board, battery tray on top, USB-C opening at the new place.
-* Firmware `car.cpp`: DRV8871 IN1/IN2, CRSF on IO15/16, hall IO38.
+* Firmware `car.cpp`: ESC on IO4 (with arming), CRSF on IO15/16, boost on CH5 with the NTC temperature limit, hall IO38.
+* ESC wiring: XT60 Y-cable battery -> ESC + this board; do NOT connect the ESC's red BEC wire to the board.
