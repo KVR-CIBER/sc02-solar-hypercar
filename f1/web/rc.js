@@ -4,8 +4,8 @@
 const KEY = "sc02.rc";
 // boost = switch SA, sent as channel 5 (AUX1). EdgeTX "USB Joystick" puts CH1..CH8 on axes 0..7, so CH5 = axis 4:
 // SA up = -100 % (off), SA down = +100 % (boost). Same channel goes over ExpressLRS to the real car (CRSF ch 5).
-const SA_BOOST = { type: "axis", idx: 4, off: -1, sign: 1 };
-const SB_REVERSE = { type: "axis", idx: 5, off: -1, sign: 1 };    // reverse gear: CH6 = SB in the POCKET model
+const SA_BOOST = { type: "axis", idx: 4, off: 0, sign: 1 };      // only when SA is fully down (> +50 %)
+const SB_REVERSE = { type: "axis", idx: 5, off: 0, sign: 1 };    // reverse gear: CH6 = SB fully down (POCKET model)
 let map = null;
 try { map = JSON.parse(localStorage.getItem(KEY) || "null"); } catch { }
 
@@ -79,7 +79,7 @@ export function bindRcPanel($) {
         let k = -1, d = 0;
         p.axes.forEach((a, j) => { const dd = Math.abs(a - rest[j]); if (!used.includes(j) && dd > d) { d = dd; k = j; } });
         if (bi >= 0) m[kind] = { type: "button", idx: bi };
-        else if (d > 0.5) m[kind] = { type: "axis", idx: k, off: rest[k], sign: Math.sign(p.axes[k] - rest[k]) };
+        else if (d > 0.5) m[kind] = { type: "axis", idx: k, off: (rest[k] + p.axes[k]) / 2 - Math.sign(p.axes[k] - rest[k]) * 0.5, sign: Math.sign(p.axes[k] - rest[k]) };
         else { msg.textContent = "Geen schakelaar gezien – zet hem om (of klik 'overslaan')."; return; }
         if (kind === "boost") rest = [...p.axes];                // the boost switch stays on: new rest for the next step
       }
