@@ -19,6 +19,12 @@ export function createVehicle(o = {}) {
     // only while the motors are cool enough and the battery holds its voltage. Same model runs in the car firmware,
     // with the current from the INA226: two 130 motors ~28 J/K, ~10 K/W to the air (better with airflow).
     boostGain: 1.6, Cth: 28, Rth: 10, Tamb: 22, Tlock: 90, Trearm: 70, vCellMin: 3.5, vCellRearm: 3.65,
+    boostFull: true,                 // maximum boost: 100 % duty = the full battery voltage on the motors
+    Ilim: 2 * 64 / 18,               // DRV8871 hardware current limit, ILIM 18k: 3.55 A per motor (two motors)
+    rpmMax: 38000,
+    // DRV8871 heating: Rds(on) high + low side 0.565 ohm, HSOP-8 on a 4-layer board ~35 K/W, ~0.8 J/K; its own
+    // thermal shutdown is ~175 C. The firmware estimates this from the INA226 current and stops boost first.
+    rdsDrv: 0.565, RthDrv: 35, CthDrv: 0.8, TdrvLock: 140, TdrvRearm: 100, TdrvShutdown: 170,                   // firmware speed guard: brushed 130 motors (bushings, commutator) above ~38k rpm wear out fast
     ...o,
   };
   const bat = BATTERIES[c.battery];
@@ -30,7 +36,7 @@ export function createVehicle(o = {}) {
   const s = {
     x: 0, y: 0, psi: 0, vx: 0, vy: 0, r: 0, w: 0, delta: 0, soc: 1, t: 0,
     wheelR: 0, wheelF: 0, I: 0, Vbus: 0, P: { motor: 0, pi: 0, esp: 0, servo: 0, total: 0 }, kappa: 0, alphaF: 0, alphaR: 0,
-    ax: 0, ay: 0, duty: 0, speed: 0, energyWh: 0, Tm: 22, boost: false, boostLock: '', Pheat: 0,
+    ax: 0, ay: 0, duty: 0, speed: 0, energyWh: 0, Tm: 22, Tdrv: 22, drvOff: false, boost: false, boostLock: '', Pheat: 0,
   };
   const g = 9.81;
   function voc() {
@@ -59,10 +65,14 @@ export function createVehicle(o = {}) {
     const braking = braking_(inp, thr);
     // boost: allowed until the motors are too hot or the battery sags; re-armed when cooled / recovered
     if (s.boostLock === 'heet' && s.Tm <= c.Trearm) s.boostLock = '';
+    if (s.boostLock === 'driver' && s.Tdrv <= c.TdrvRearm) s.boostLock = '';
     if (s.boostLock === 'batterij' && V0 / bat.cells >= c.vCellRearm && s.soc > 0.12) s.boostLock = '';
     s.boost = !!inp.boost && !s.boostLock && !braking_(inp, thr);
-    const vLim = c.vMotorMax * (s.boost ? c.boostGain : 1);
-    const Vm = braking_(inp, thr) ? 0 : thr * Math.min(vLim, V0);
+    let vLim = s.boost ? (c.boostFull ? V0 : c.vMotorMax * c.boostGain) : c.vMotorMax;
+    const wMax = c.rpmMax * 2 * Math.PI / 60;                 // speed guard: never drive the motor above rpmMax
+    vLim = Math.min(vLim, mot.ke * wMax * 1.02 + Math.max(0, wMax - Math.abs(s.w)) * 0.05);
+    if (s.drvOff && s.Tdrv < c.TdrvShutdown - 25) s.drvOff = false;           // DRV8871 thermal shutdown recovers
+    const Vm = braking_(inp, thr) || s.drvOff ? 0 : thr * Math.min(vLim, V0);
     // brake = slip controller in the firmware (ABS-like): the H-bridge servoes the motor to a small
     // negative slip instead of locking the rear. Less slip while steering, so the tail keeps its grip.
     let wT = 0;
@@ -90,6 +100,7 @@ export function createVehicle(o = {}) {
       if (braking) { const Vx = Math.min(c.vMotorMax, V0); V = Math.max(-Vx, Math.min(Vx, mot.ke * wT + 0.2 * (wT - w))); }
       if (braking) Im = (V - mot.ke * w) / Rm;
       else { Im = (Vm - mot.ke * w) / Rm; if (Vm >= 0 && Im < 0 && thr >= 0) Im = 0; }   // freewheel (no regen)
+      Im = Math.max(-c.Ilim, Math.min(c.Ilim, Im));                 // DRV8871 current chopping
       const tau = mot.ke * Im - Math.sign(w) * mot.ke * mot.I0 * Math.min(1, Math.abs(w) / 50);
       const k = slipOf(w);
       let Fx = tyre(FzR, k), Fy = tyre(FzR, alphaR);
@@ -110,6 +121,10 @@ export function createVehicle(o = {}) {
     s.Pheat = sh.Im * sh.Im * mot.R + Math.abs(mot.ke * mot.I0 * s.w) * 0.5;
     s.Tm += dt * (s.Pheat - (s.Tm - c.Tamb) * (1 + 0.08 * Math.abs(vx)) / c.Rth) / c.Cth;
     if (s.Tm >= c.Tlock) s.boostLock = 'heet';
+    const Ichip = Math.abs(sh.Im) / 2;                                          // one DRV8871 per motor
+    s.Tdrv += dt * (Ichip * Ichip * c.rdsDrv - (s.Tdrv - c.Tamb) / c.RthDrv) / c.CthDrv;
+    if (s.Tdrv >= c.TdrvLock) s.boostLock = 'driver';
+    if (s.Tdrv >= c.TdrvShutdown) s.drvOff = true;
     const FyF = tyreF(FzF, alphaF);
     // --- body (vehicle frame)
     const drag = 0.5 * c.rho * c.CdA * vx * Math.abs(vx);

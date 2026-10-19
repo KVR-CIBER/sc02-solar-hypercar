@@ -670,10 +670,10 @@ function hud() {
   const bars = [["pm", "bm", P.motor, 30], ["pp", "bp", P.pi, 6], ["pe", "be", P.esp, 2], ["ps", "bs", P.servo, 3]];
   for (const [t, b, v, mx] of bars) { $(t).textContent = fx(v, 1); $(b).style.width = Math.min(100, (v / mx) * 100) + "%"; }
   const T = s.Tm, c = veh.c;
-  $("tmp").textContent = Math.round(T); $("btm").style.width = Math.min(100, Math.max(0, (T - c.Tamb) / (c.Tlock - c.Tamb) * 100)) + "%";
+  $("tmp").textContent = Math.round(T) + " / " + Math.round(s.Tdrv); $("btm").style.width = Math.min(100, Math.max(0, (T - c.Tamb) / (c.Tlock - c.Tamb) * 100)) + "%";
   $("btm").style.background = T < c.Trearm ? "#33d17a" : T < c.Tlock - 6 ? "#f6c344" : "#ff3b30";
   const bx = $("boost"); bx.classList.toggle("on", s.boost); bx.classList.toggle("lock", !!s.boostLock);
-  $("bstate").textContent = (rcRev ? "R · " : "") + (s.boostLock === "heet" ? "TE HEET" : s.boostLock === "batterij" ? "BATTERIJ" : s.boost ? "BOOST" : boostAsk ? "BOOST · geef gas" : "boost klaar");
+  $("bstate").textContent = (rcRev ? "R · " : "") + (s.drvOff ? "DRIVER UIT" : s.boostLock === "heet" ? "MOTOR HEET" : s.boostLock === "driver" ? "DRIVER HEET" : s.boostLock === "batterij" ? "BATTERIJ" : s.boost ? "BOOST" : boostAsk ? "BOOST · geef gas" : "boost klaar");
   $("lt").textContent = TRACK === "recht" ? `${Math.round(Math.max(0, s.x + odoOff))} m` : fmt(Math.max(0, s.t - lapStart));
 }
 
