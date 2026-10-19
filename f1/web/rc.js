@@ -36,7 +36,7 @@ export const rc = {
 // ------------------------------------------------------------------ learn panel
 const STEPS = [
   ["Linkerstick in het MIDDEN, rechterstick los, achterste knop los, knop vooraan UIT (niet ingedrukt).", "center"],
-  ["Stuur volledig naar RECHTS en houd vast.", "steer"],
+  ["STUREN: duw de RECHTERstick volledig naar rechts en houd vast.", "steer"],
   ["Geef VOL GAS: de GAS-stick (links) helemaal naar voren en houd vast.", "thr"],
   ["HOUD de achterste knop (SA, boost) ingedrukt en klik 'volgende'. ('overslaan' = kanaal 5)", "boost"],
   ["Druk de knop vooraan (SE, achteruit) diep in zodat hij blijft zitten, klik 'volgende'. ('overslaan' = kanaal 6)", "rev"],
