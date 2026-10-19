@@ -6,14 +6,19 @@ const KEY = "sc02.rc";
 // SA up = -100 % (off), SA down = +100 % (boost). Same channel goes over ExpressLRS to the real car (CRSF ch 5).
 const SA_BOOST = { type: "axis", idx: 4, off: 0, sign: 1 };      // only when SA is fully down (> +50 %)
 const SB_REVERSE = { type: "axis", idx: 5, off: 0, sign: 1 };    // reverse gear: CH6 = SB fully down (POCKET model)
-let map = null;
-try { map = JSON.parse(localStorage.getItem(KEY) || "null"); } catch { }
+// one learned mapping per device: the Pocket over USB and over Bluetooth (ELRS 'BLE Joystick') are different devices
+let maps = {};
+try { const v = JSON.parse(localStorage.getItem(KEY) || "null"); maps = v && v.id ? { [v.id]: v } : (v || {}); } catch { }
+const pads = () => (navigator.getGamepads ? [...navigator.getGamepads()].filter(Boolean) : []);
+let map = null;                                     // mapping of the pad in use right now
 
 export const rc = {
   get map() { return map; },
-  pad() {                                           // the learned radio if present, else the first pad
-    const pads = navigator.getGamepads ? [...navigator.getGamepads()].filter(Boolean) : [];
-    return (map && pads.find((p) => p.id === map.id)) || pads[0] || null;
+  pad() {                                           // a connected pad with a learned mapping (latest input wins), else the busiest pad
+    const ps = pads(), known = ps.filter((p) => maps[p.id]).sort((a, b) => b.timestamp - a.timestamp);
+    const p = known[0] || ps.sort((a, b) => b.timestamp - a.timestamp)[0] || null;
+    map = p ? maps[p.id] || null : null;
+    return p;
   },
   // {steer -1..1 (right = -1), thr -1..1 (stick centre = 0, back = brake), boost, rev} or null without a learned radio
   read() {
@@ -29,8 +34,9 @@ export const rc = {
     const boost = sw(map.boost || SA_BOOST) || !!p.buttons[0]?.pressed;
     return { steer: -dz(ax(map.steer), 0.03), thr: dz(t, 0.06), boost, rev: sw(map.rev || SB_REVERSE) };
   },
-  save(m) { map = m; try { localStorage.setItem(KEY, JSON.stringify(m)); } catch { } },
-  forget() { map = null; try { localStorage.removeItem(KEY); } catch { } },
+  save(m) { maps[m.id] = m; map = m; try { localStorage.setItem(KEY, JSON.stringify(maps)); } catch { } },
+  forget() { const p = this.pad(); if (p) delete maps[p.id]; map = null; try { localStorage.setItem(KEY, JSON.stringify(maps)); } catch { } },
+  isLearned(id) { return !!maps[id]; },
 };
 
 // ------------------------------------------------------------------ learn panel
@@ -45,10 +51,10 @@ const STEPS = [
 export function bindRcPanel($) {
   const panel = $("rcpanel"), live = $("rclive"), msg = $("rcmsg"), stat = $("rcstat");
   let step = -1, rest = null, m = null, raf = 0;
-  const pads = () => (navigator.getGamepads ? [...navigator.getGamepads()].filter(Boolean) : []);
   function drawLive() {
     const p = rc.pad();
-    stat.textContent = p ? p.id.replace(/\(.*?\)/g, "").trim() : "geen controller: zet de Pocket op USB → 'USB Joystick (HID)' en beweeg een stick";
+    const all = pads();
+    stat.textContent = p ? `${p.id.replace(/\(.*?\)/g, "").trim()}${all.length > 1 ? `  (+${all.length - 1} andere)` : ""}` : "geen controller: Pocket via USB ('USB Joystick (HID)') of Bluetooth ('BLE Joystick'), beweeg een stick";
     const st = rc.read();
     live.innerHTML = (st ? `<div class="st">boost: <b class="${st.boost ? "on" : ""}">${st.boost ? "AAN" : "uit"}</b> · achteruit: <b class="${st.rev ? "on" : ""}">${st.rev ? "AAN" : "uit"}</b> · gas ${Math.round(st.thr * 100)} %</div>` : "") + (p ? p.axes.map((a, i) => `<div class="ax"><span>${i}</span><b><i style="left:${(a + 1) * 50}%"></i></b></div>`).join("") +
       `<div class="bt">${p.buttons.map((b, i) => `<i class="${b.pressed ? "on" : ""}" title="${i}"></i>`).join("")}</div>` : "");

@@ -501,7 +501,7 @@ function readInput() {
     steer += r.steer; boost = boost || r.boost;
   }
   for (const gp of navigator.getGamepads ? navigator.getGamepads() : []) {
-    if (!gp || (rc.map && gp.id === rc.map.id)) continue;
+    if (!gp || rc.isLearned(gp.id)) continue;              // learned radios are read by rc.read()
     if (gp.buttons[5]?.pressed) boost = true;          // RB = boost on an Xbox-style pad
     const rt = gp.buttons[7]?.value || 0, lt = gp.buttons[6]?.value || 0, sx = Math.abs(gp.axes[0]) > 0.08 ? gp.axes[0] : 0;
     if (rt > 0.02 || lt > 0.02 || sx) lastInput = performance.now();
