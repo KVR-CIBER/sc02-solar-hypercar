@@ -91,3 +91,6 @@ body.render.clean #power, body.render.clean #lap { display: none; }
 #rcpanel .btns { display: flex; gap: 6px; flex-wrap: wrap; }
 #rcpanel button { flex: 1; padding: 8px 10px; border: 0; border-radius: 9px; background: rgba(255,255,255,.1); color: inherit; font: 600 12px system-ui; cursor: pointer; }
 #rcpanel button#rcgo { background: #0a84ff; }
+#rclive .st { margin: 2px 0 8px; font: 12px system-ui; color: rgba(255,255,255,.6); }
+#rclive .st b { color: rgba(255,255,255,.85); }
+#rclive .st b.on { color: #33d17a; }

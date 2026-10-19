@@ -458,7 +458,7 @@ function makeVeh() {
 const keys = {};
 addEventListener("keydown", (e) => { keys[e.code] = true; if (e.code === "KeyC") nextCam(); if (e.code === "KeyR") resetCar(); if (e.code === "Space") e.preventDefault(); lastInput = performance.now(); });
 addEventListener("keyup", (e) => { keys[e.code] = false; });
-let rcRev = false, touchSteer = 0, touchGas = 0, touchBrake = 0, lastInput = -1e9, steerSm = 0, lastDt = 0.016;
+let rcRev = false, boostAsk = false, touchSteer = 0, touchGas = 0, touchBrake = 0, lastInput = -1e9, steerSm = 0, lastDt = 0.016;
 function bindTouch() {
   const ts = $("tsteer"), knob = ts.querySelector("i");
   const st = (e) => { const r = ts.getBoundingClientRect(); const t = [...e.touches].find((t) => t.clientX < r.right + 40) || e.touches[0]; if (!t) return;
@@ -516,6 +516,7 @@ function readInput() {
   // speed-sensitive steering (same limiter as the ESP firmware) + smoothing for digital keys
   const v = Math.abs(veh.s.vx), lim = Math.max(0.22, Math.min(1, 2.2 / (v + 0.6)));
   steerSm += (Math.max(-1, Math.min(1, steer)) * lim - steerSm) * Math.min(1, lastDt * 9);
+  boostAsk = boost;
   return { throttle: thr, brake: brk, steer: steerSm, boost };
 }
 
@@ -672,7 +673,7 @@ function hud() {
   $("tmp").textContent = Math.round(T); $("btm").style.width = Math.min(100, Math.max(0, (T - c.Tamb) / (c.Tlock - c.Tamb) * 100)) + "%";
   $("btm").style.background = T < c.Trearm ? "#33d17a" : T < c.Tlock - 6 ? "#f6c344" : "#ff3b30";
   const bx = $("boost"); bx.classList.toggle("on", s.boost); bx.classList.toggle("lock", !!s.boostLock);
-  $("bstate").textContent = (rcRev ? "R · " : "") + (s.boostLock === "heet" ? "TE HEET" : s.boostLock === "batterij" ? "BATTERIJ" : s.boost ? "BOOST" : "boost klaar");
+  $("bstate").textContent = (rcRev ? "R · " : "") + (s.boostLock === "heet" ? "TE HEET" : s.boostLock === "batterij" ? "BATTERIJ" : s.boost ? "BOOST" : boostAsk ? "BOOST · geef gas" : "boost klaar");
   $("lt").textContent = TRACK === "recht" ? `${Math.round(Math.max(0, s.x + odoOff))} m` : fmt(Math.max(0, s.t - lapStart));
 }
 

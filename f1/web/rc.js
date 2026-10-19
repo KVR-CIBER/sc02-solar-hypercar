@@ -25,7 +25,9 @@ export const rc = {
     // throttle: the HID axis is symmetric, so its centre (0) is neutral for a spring stick AND for the
     // non-centring throttle stick: forward = gas, back = brake (full back = full brake, never reverse by itself)
     const t = Math.max(-1, Math.min(1, (p.axes[map.thr.axis] ?? 0) * Math.sign(map.thr.scale)));
-    return { steer: -dz(ax(map.steer), 0.03), thr: dz(t, 0.06), boost: sw(map.boost || SA_BOOST), rev: sw(map.rev || SB_REVERSE) };
+    // the Pocket sends its momentary SA button as HID button 0 (green dot), so that always counts as boost too
+    const boost = sw(map.boost || SA_BOOST) || !!p.buttons[0]?.pressed;
+    return { steer: -dz(ax(map.steer), 0.03), thr: dz(t, 0.06), boost, rev: sw(map.rev || SB_REVERSE) };
   },
   save(m) { map = m; try { localStorage.setItem(KEY, JSON.stringify(m)); } catch { } },
   forget() { map = null; try { localStorage.removeItem(KEY); } catch { } },
@@ -47,8 +49,9 @@ export function bindRcPanel($) {
   function drawLive() {
     const p = rc.pad();
     stat.textContent = p ? p.id.replace(/\(.*?\)/g, "").trim() : "geen controller: zet de Pocket op USB → 'USB Joystick (HID)' en beweeg een stick";
-    live.innerHTML = p ? p.axes.map((a, i) => `<div class="ax"><span>${i}</span><b><i style="left:${(a + 1) * 50}%"></i></b></div>`).join("") +
-      `<div class="bt">${p.buttons.map((b, i) => `<i class="${b.pressed ? "on" : ""}" title="${i}"></i>`).join("")}</div>` : "";
+    const st = rc.read();
+    live.innerHTML = (st ? `<div class="st">boost: <b class="${st.boost ? "on" : ""}">${st.boost ? "AAN" : "uit"}</b> · achteruit: <b class="${st.rev ? "on" : ""}">${st.rev ? "AAN" : "uit"}</b> · gas ${Math.round(st.thr * 100)} %</div>` : "") + (p ? p.axes.map((a, i) => `<div class="ax"><span>${i}</span><b><i style="left:${(a + 1) * 50}%"></i></b></div>`).join("") +
+      `<div class="bt">${p.buttons.map((b, i) => `<i class="${b.pressed ? "on" : ""}" title="${i}"></i>`).join("")}</div>` : "");
     if (!panel.classList.contains("hidden")) raf = requestAnimationFrame(drawLive);
   }
   function show(i) {
