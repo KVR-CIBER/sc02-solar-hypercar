@@ -66,6 +66,7 @@ export const rc = {
   save(m) { maps[m.id] = m; map = m; try { localStorage.setItem(KEY, JSON.stringify(maps)); } catch { } },
   forget() { const p = this.pad(); if (p) delete maps[p.id]; map = null; try { localStorage.setItem(KEY, JSON.stringify(maps)); } catch { } },
   isLearned(id) { return !!maps[id]; },
+  bridged() { return !!bridgeLive(); },
 };
 
 // ------------------------------------------------------------------ learn panel
