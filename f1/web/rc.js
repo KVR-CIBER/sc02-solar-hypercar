@@ -34,7 +34,7 @@ export const rc = {
     // the Pocket sends its momentary SA button as HID button 0 (green dot), so that always counts as boost too
     const boost = sw(map.boost || SA_BOOST) || !!p.buttons[0]?.pressed;
     // speed limit: scroll wheel P1 on CH7 (axis 6), same 6 steps as the Lua screen on the Pocket (sc02.lua)
-    const a7 = p.axes[6], li = a7 === undefined ? LIMITS.length - 1 : Math.min(LIMITS.length - 1, Math.max(0, Math.floor((a7 + 1) / 2 * LIMITS.length)));
+    const lm = map.limit || { axis: 6, sign: 1 }, a7 = p.axes[lm.axis] === undefined ? undefined : p.axes[lm.axis] * (lm.sign < 0 ? -1 : 1), li = a7 === undefined ? LIMITS.length - 1 : Math.min(LIMITS.length - 1, Math.max(0, Math.floor((a7 + 1) / 2 * LIMITS.length)));
     return { steer: -dz(ax(map.steer), 0.03), thr: dz(t, 0.06), boost, rev: sw(map.rev || SB_REVERSE), limit: LIMITS[li] };
   },
   save(m) { maps[m.id] = m; map = m; try { localStorage.setItem(KEY, JSON.stringify(maps)); } catch { } },
@@ -49,6 +49,7 @@ const STEPS = [
   ["Geef VOL GAS: de GAS-stick (links) helemaal naar voren en houd vast.", "thr"],
   ["HOUD de achterste knop (SA, boost) ingedrukt en klik 'volgende'. ('overslaan' = kanaal 5)", "boost"],
   ["Druk de knop vooraan (SE, achteruit) diep in zodat hij blijft zitten, klik 'volgende'. ('overslaan' = kanaal 6)", "rev"],
+  ["Draai het SCROLWIEL (snelheidslimiet) helemaal naar één kant, klik 'volgende'. ('overslaan' = kanaal 7)", "limit"],
 ];
 
 export function bindRcPanel($) {
@@ -98,7 +99,16 @@ export function bindRcPanel($) {
         else { msg.textContent = "Geen schakelaar gezien – zet hem om (of klik 'overslaan')."; return; }
         if (kind === "boost") rest = [...p.axes];                // the boost switch stays on: new rest for the next step
       }
-      if (kind === "rev") { delete m.restButtons; rc.save(m); show(-1); return; }
+      if (kind === "rev") rest = [...p.axes];
+    } else if (kind === "limit") {
+      if (!skip) {
+        const used = [m.steer.axis, m.thr.axis, m.boost?.type === "axis" ? m.boost.idx : -1, m.rev?.type === "axis" ? m.rev.idx : -1];
+        let k = -1, d = 0;
+        p.axes.forEach((a, j) => { const dd = Math.abs(a - rest[j]); if (!used.includes(j) && dd > d) { d = dd; k = j; } });
+        if (d < 0.3) { msg.textContent = "Ik zie het wiel niet bewegen – draai verder (of klik 'overslaan')."; return; }
+        m.limit = { axis: k, sign: Math.sign(p.axes[k] - rest[k]) };
+      }
+      delete m.restButtons; rc.save(m); show(-1); return;
     }
     show(step + 1);
   }
