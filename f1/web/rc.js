@@ -13,9 +13,29 @@ try { const v = JSON.parse(localStorage.getItem(KEY) || "null"); maps = v && v.i
 const pads = () => (navigator.getGamepads ? [...navigator.getGamepads()].filter(Boolean) : []);
 let map = null;                                     // mapping of the pad in use right now
 
+// ---- bridge (pocket_bridge.py on :8091): reads the Pocket over USB or Bluetooth itself, channels already in CH1..CH8
+// order. Works without the browser Gamepad API and without learning: CH1 steer, CH3 gas, CH5 boost, CH6 reverse, CH7 limit.
+const br = { name: null, ch: null, btn: 0, t: 0, rest: null };
+(function connectBridge() {
+  try {
+    const es = new EventSource("http://localhost:8091/");
+    es.onmessage = (e) => { const d = JSON.parse(e.data);
+      if (!d.name) { br.name = null; br.rest = null; return; }
+      if (!br.rest) br.rest = [...d.ch];                      // switches as they are when the radio connects = 'off'
+      Object.assign(br, { name: d.name, ch: d.ch, btn: d.btn, t: performance.now() }); };
+    es.onerror = () => { es.close(); br.name = null; setTimeout(connectBridge, 3000); };
+  } catch { setTimeout(connectBridge, 3000); }
+})();
+const bridgeLive = () => br.name && performance.now() - br.t < 600;
+function bridgePad() {
+  return { id: br.name + " (brug)", axes: br.ch, timestamp: br.t,
+    buttons: Array.from({ length: 16 }, (_, i) => ({ pressed: !!(br.btn & (1 << i)), value: (br.btn >> i) & 1 })) };
+}
+
 export const rc = {
   get map() { return map; },
-  pad() {                                           // a connected pad with a learned mapping (latest input wins), else the busiest pad
+  pad() {                                           // the bridge first; else a learned pad (latest input wins), else the busiest
+    if (bridgeLive()) { map = maps[bridgePad().id] || null; return bridgePad(); }
     const ps = pads(), known = ps.filter((p) => maps[p.id]).sort((a, b) => b.timestamp - a.timestamp);
     const p = known[0] || ps.sort((a, b) => b.timestamp - a.timestamp)[0] || null;
     map = p ? maps[p.id] || null : null;
@@ -23,6 +43,12 @@ export const rc = {
   },
   // {steer -1..1 (right = -1), thr -1..1 (stick centre = 0, back = brake), boost, rev} or null without a learned radio
   read() {
+    if (bridgeLive() && !maps[bridgePad().id]) {      // bridge with the fixed POCKET channel layout
+      const c = br.ch, r = br.rest, dz = (v, d) => (Math.abs(v) < d ? 0 : (v - Math.sign(v) * d) / (1 - d));
+      const flip = (k) => Math.abs(c[k] - r[k]) > 1;      // switch moved to the other end
+      const li = Math.min(LIMITS.length - 1, Math.max(0, Math.floor((c[6] + 1) / 2 * LIMITS.length)));
+      return { steer: -dz(c[0], 0.03), thr: dz(c[2], 0.06), boost: flip(4) || !!(br.btn & 1), rev: flip(5), limit: LIMITS[li] };
+    }
     const p = this.pad();
     if (!map || !p || p.id !== map.id) return null;
     const ax = (m) => Math.max(-1, Math.min(1, ((p.axes[m.axis] ?? 0) - m.center) * m.scale));
