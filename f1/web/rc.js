@@ -33,11 +33,11 @@ export const rc = {
 
 // ------------------------------------------------------------------ learn panel
 const STEPS = [
-  ["Laat alle sticks los (in het midden) en zet SA naar boven (boost UIT).", "center"],
+  ["Linkerstick in het MIDDEN, rechterstick los, achterste knop los, knop vooraan UIT (niet ingedrukt).", "center"],
   ["Stuur volledig naar RECHTS en houd vast.", "steer"],
   ["Geef VOL GAS: de GAS-stick (links) helemaal naar voren en houd vast.", "thr"],
-  ["Zet SA naar beneden (BOOST aan). Anders schakelaar? Zet die om. 'overslaan' = SA op kanaal 5.", "boost"],
-  ["Zet de ACHTERUIT-schakelaar om (links boven). 'overslaan' = SB op kanaal 6.", "rev"],
+  ["HOUD de achterste knop (SA, boost) ingedrukt en klik 'volgende'. ('overslaan' = kanaal 5)", "boost"],
+  ["Druk de knop vooraan (SE, achteruit) diep in zodat hij blijft zitten, klik 'volgende'. ('overslaan' = kanaal 6)", "rev"],
 ];
 
 export function bindRcPanel($) {
@@ -73,7 +73,10 @@ export function bindRcPanel($) {
       if (d < 0.3) { msg.textContent = "Ik zie geen stick bewegen – houd hem volledig uit en klik opnieuw."; return; }
       m[kind] = { axis: k, center: rest[k], scale: 1 / (p.axes[k] - rest[k]) };   // sign included in scale
     } else if (kind === "boost" || kind === "rev") {
-      if (!skip) {
+      if (skip) {
+        const k = kind === "boost" ? 4 : 5, r0 = rest[k] ?? -1, sg = r0 > 0 ? -1 : 1;
+        m[kind] = { type: "axis", idx: k, off: r0 + sg * 0.5, sign: sg };
+      } else {
         const bi = p.buttons.findIndex((b, i) => b.pressed !== m.restButtons[i]);
         const used = [m.steer.axis, m.thr.axis, m.boost?.type === "axis" ? m.boost.idx : -1];
         let k = -1, d = 0;
