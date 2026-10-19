@@ -458,7 +458,7 @@ function makeVeh() {
 const keys = {};
 addEventListener("keydown", (e) => { keys[e.code] = true; if (e.code === "KeyC") nextCam(); if (e.code === "KeyR") resetCar(); if (e.code === "Space") e.preventDefault(); lastInput = performance.now(); });
 addEventListener("keyup", (e) => { keys[e.code] = false; });
-let rcRev = false, boostAsk = false, touchSteer = 0, touchGas = 0, touchBrake = 0, lastInput = -1e9, steerSm = 0, lastDt = 0.016;
+let rcRev = false, boostAsk = false, speedLimit = -1, touchSteer = 0, touchGas = 0, touchBrake = 0, lastInput = -1e9, steerSm = 0, lastDt = 0.016;
 function bindTouch() {
   const ts = $("tsteer"), knob = ts.querySelector("i");
   const st = (e) => { const r = ts.getBoundingClientRect(); const t = [...e.touches].find((t) => t.clientX < r.right + 40) || e.touches[0]; if (!t) return;
@@ -484,6 +484,11 @@ function lagAt(t) {                                      // car side: what the E
   while (lagQ.length && lagQ[0].arr <= t) lagHeld = lagQ.shift().inp;
   return lagHeld;
 }
+function sayLimit(l) {                                  // spoken like on the Pocket
+  if (speedLimit < 0 || !window.speechSynthesis) return;
+  const u = new SpeechSynthesisUtterance(l ? `${l} kilometer per uur` : "geen limiet"); u.lang = "nl-BE"; u.rate = 1.1;
+  speechSynthesis.cancel(); speechSynthesis.speak(u);
+}
 function readInput() {
   let thr = 0, brk = 0, steer = 0, boost = !!(keys.ShiftLeft || keys.ShiftRight);
   if (keys.KeyW || keys.ArrowUp) thr = 1;
@@ -498,6 +503,8 @@ function readInput() {
     if (r.thr > 0) thr = r.rev ? Math.min(thr, -0.6 * r.thr) : Math.max(thr, r.thr);
     else if (r.thr < 0) brk = Math.max(brk, -r.thr);
     rcRev = r.rev;
+    if (r.limit !== speedLimit) { speedLimit = r.limit; sayLimit(r.limit); }
+    if (speedLimit > 0 && thr > 0) thr = Math.min(thr, Math.max(0, Math.min(1, (speedLimit - veh.s.speed * 3.6) / 6)));   // governor
     steer += r.steer; boost = boost || r.boost;
   }
   for (const gp of navigator.getGamepads ? navigator.getGamepads() : []) {
@@ -673,7 +680,7 @@ function hud() {
   $("tmp").textContent = Math.round(T) + " / " + Math.round(s.Tdrv); $("btm").style.width = Math.min(100, Math.max(0, (T - c.Tamb) / (c.Tlock - c.Tamb) * 100)) + "%";
   $("btm").style.background = T < c.Trearm ? "#33d17a" : T < c.Tlock - 6 ? "#f6c344" : "#ff3b30";
   const bx = $("boost"); bx.classList.toggle("on", s.boost); bx.classList.toggle("lock", !!s.boostLock);
-  $("bstate").textContent = (rcRev ? "R · " : "") + (s.drvOff ? "DRIVER UIT" : s.boostLock === "heet" ? "MOTOR HEET" : s.boostLock === "driver" ? "DRIVER HEET" : s.boostLock === "batterij" ? "BATTERIJ" : s.boost ? "BOOST" : boostAsk ? "BOOST · geef gas" : "boost klaar");
+  $("bstate").textContent = (speedLimit > 0 ? speedLimit + " km/h · " : "") + (rcRev ? "R · " : "") + (s.drvOff ? "DRIVER UIT" : s.boostLock === "heet" ? "MOTOR HEET" : s.boostLock === "driver" ? "DRIVER HEET" : s.boostLock === "batterij" ? "BATTERIJ" : s.boost ? "BOOST" : boostAsk ? "BOOST · geef gas" : "boost klaar");
   $("lt").textContent = TRACK === "recht" ? `${Math.round(Math.max(0, s.x + odoOff))} m` : fmt(Math.max(0, s.t - lapStart));
 }
 

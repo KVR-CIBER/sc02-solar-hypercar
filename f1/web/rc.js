@@ -2,6 +2,7 @@
 // Every radio maps its channels to other HID axes, so the axes are learned once (sticks centred, steer right, full gas,
 // boost switch on) and kept in localStorage. Without a learned mapping an Xbox-style pad works as before (app.js).
 const KEY = "sc02.rc";
+export const LIMITS = [20, 40, 60, 80, 100, 0];                   // km/h, 0 = no limit (last wheel position)
 // boost = switch SA, sent as channel 5 (AUX1). EdgeTX "USB Joystick" puts CH1..CH8 on axes 0..7, so CH5 = axis 4:
 // SA up = -100 % (off), SA down = +100 % (boost). Same channel goes over ExpressLRS to the real car (CRSF ch 5).
 const SA_BOOST = { type: "axis", idx: 4, off: 0, sign: 1 };      // only when SA is fully down (> +50 %)
@@ -32,7 +33,9 @@ export const rc = {
     const t = Math.max(-1, Math.min(1, (p.axes[map.thr.axis] ?? 0) * Math.sign(map.thr.scale)));
     // the Pocket sends its momentary SA button as HID button 0 (green dot), so that always counts as boost too
     const boost = sw(map.boost || SA_BOOST) || !!p.buttons[0]?.pressed;
-    return { steer: -dz(ax(map.steer), 0.03), thr: dz(t, 0.06), boost, rev: sw(map.rev || SB_REVERSE) };
+    // speed limit: scroll wheel P1 on CH7 (axis 6), same 6 steps as the Lua screen on the Pocket (sc02.lua)
+    const a7 = p.axes[6], li = a7 === undefined ? LIMITS.length - 1 : Math.min(LIMITS.length - 1, Math.max(0, Math.floor((a7 + 1) / 2 * LIMITS.length)));
+    return { steer: -dz(ax(map.steer), 0.03), thr: dz(t, 0.06), boost, rev: sw(map.rev || SB_REVERSE), limit: LIMITS[li] };
   },
   save(m) { maps[m.id] = m; map = m; try { localStorage.setItem(KEY, JSON.stringify(maps)); } catch { } },
   forget() { const p = this.pad(); if (p) delete maps[p.id]; map = null; try { localStorage.setItem(KEY, JSON.stringify(maps)); } catch { } },
