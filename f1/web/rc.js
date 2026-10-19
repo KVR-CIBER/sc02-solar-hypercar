@@ -5,6 +5,7 @@ const KEY = "sc02.rc";
 // boost = switch SA, sent as channel 5 (AUX1). EdgeTX "USB Joystick" puts CH1..CH8 on axes 0..7, so CH5 = axis 4:
 // SA up = -100 % (off), SA down = +100 % (boost). Same channel goes over ExpressLRS to the real car (CRSF ch 5).
 const SA_BOOST = { type: "axis", idx: 4, off: -1, sign: 1 };
+const SB_REVERSE = { type: "axis", idx: 5, off: -1, sign: 1 };    // reverse gear: CH6 = SB in the POCKET model
 let map = null;
 try { map = JSON.parse(localStorage.getItem(KEY) || "null"); } catch { }
 
@@ -14,15 +15,17 @@ export const rc = {
     const pads = navigator.getGamepads ? [...navigator.getGamepads()].filter(Boolean) : [];
     return (map && pads.find((p) => p.id === map.id)) || pads[0] || null;
   },
-  // {steer -1..1 (right = -1), thr -1..1, boost bool} or null when no learned radio is connected
+  // {steer -1..1 (right = -1), thr -1..1 (stick centre = 0, back = brake), boost, rev} or null without a learned radio
   read() {
     const p = this.pad();
     if (!map || !p || p.id !== map.id) return null;
     const ax = (m) => Math.max(-1, Math.min(1, ((p.axes[m.axis] ?? 0) - m.center) * m.scale));
     const dz = (v, d) => (Math.abs(v) < d ? 0 : (v - Math.sign(v) * d) / (1 - d));
-    const b = map.boost || SA_BOOST;                // default: SA on CH5 (EdgeTX joystick: CH5 = axis 4)
-    const boost = b.type === "button" ? !!p.buttons[b.idx]?.pressed : ((p.axes[b.idx] ?? 0) - b.off) * b.sign > 0.5;
-    return { steer: -dz(ax(map.steer), 0.03), thr: dz(ax(map.thr), 0.05), boost };
+    const sw = (b) => b.type === "button" ? !!p.buttons[b.idx]?.pressed : ((p.axes[b.idx] ?? 0) - b.off) * b.sign > 0.5;
+    // throttle: the HID axis is symmetric, so its centre (0) is neutral for a spring stick AND for the
+    // non-centring throttle stick: forward = gas, back = brake (full back = full brake, never reverse by itself)
+    const t = Math.max(-1, Math.min(1, (p.axes[map.thr.axis] ?? 0) * Math.sign(map.thr.scale)));
+    return { steer: -dz(ax(map.steer), 0.03), thr: dz(t, 0.06), boost: sw(map.boost || SA_BOOST), rev: sw(map.rev || SB_REVERSE) };
   },
   save(m) { map = m; try { localStorage.setItem(KEY, JSON.stringify(m)); } catch { } },
   forget() { map = null; try { localStorage.removeItem(KEY); } catch { } },
@@ -32,8 +35,9 @@ export const rc = {
 const STEPS = [
   ["Laat alle sticks los (in het midden) en zet SA naar boven (boost UIT).", "center"],
   ["Stuur volledig naar RECHTS en houd vast.", "steer"],
-  ["Geef VOL GAS (stick naar boven) en houd vast.", "thr"],
+  ["Geef VOL GAS: de GAS-stick (links) helemaal naar voren en houd vast.", "thr"],
   ["Zet SA naar beneden (BOOST aan). Anders schakelaar? Zet die om. 'overslaan' = SA op kanaal 5.", "boost"],
+  ["Zet de ACHTERUIT-schakelaar om (links boven). 'overslaan' = SB op kanaal 6.", "rev"],
 ];
 
 export function bindRcPanel($) {
@@ -49,9 +53,9 @@ export function bindRcPanel($) {
   }
   function show(i) {
     step = i;
-    msg.textContent = i < 0 ? (rc.map ? "Controller ingeleerd ✓ – je kan rijden." : "Klik 'inleren' om je zender te koppelen.") : `${i + 1}/4  ${STEPS[i][0]}`;
+    msg.textContent = i < 0 ? (rc.map ? "Controller ingeleerd ✓ – je kan rijden." : "Klik 'inleren' om je zender te koppelen.") : `${i + 1}/${STEPS.length}  ${STEPS[i][0]}`;
     $("rcgo").textContent = i < 0 ? "inleren" : "volgende";
-    $("rcskip").style.display = i === 3 ? "" : "none";
+    $("rcskip").style.display = i >= 3 ? "" : "none";
   }
   function biggest(p, base) {                       // axis that moved most from the rest position
     let best = -1, bd = 0;
@@ -68,15 +72,18 @@ export function bindRcPanel($) {
       const [k, d] = biggest(p, rest);
       if (d < 0.3) { msg.textContent = "Ik zie geen stick bewegen – houd hem volledig uit en klik opnieuw."; return; }
       m[kind] = { axis: k, center: rest[k], scale: 1 / (p.axes[k] - rest[k]) };   // sign included in scale
-    } else if (kind === "boost") {
+    } else if (kind === "boost" || kind === "rev") {
       if (!skip) {
         const bi = p.buttons.findIndex((b, i) => b.pressed !== m.restButtons[i]);
-        const [k, d] = biggest(p, rest);
-        if (bi >= 0) m.boost = { type: "button", idx: bi };
-        else if (d > 0.5 && k !== m.steer.axis && k !== m.thr.axis) m.boost = { type: "axis", idx: k, off: rest[k], sign: Math.sign(p.axes[k] - rest[k]) };
+        const used = [m.steer.axis, m.thr.axis, m.boost?.type === "axis" ? m.boost.idx : -1];
+        let k = -1, d = 0;
+        p.axes.forEach((a, j) => { const dd = Math.abs(a - rest[j]); if (!used.includes(j) && dd > d) { d = dd; k = j; } });
+        if (bi >= 0) m[kind] = { type: "button", idx: bi };
+        else if (d > 0.5) m[kind] = { type: "axis", idx: k, off: rest[k], sign: Math.sign(p.axes[k] - rest[k]) };
         else { msg.textContent = "Geen schakelaar gezien – zet hem om (of klik 'overslaan')."; return; }
+        if (kind === "boost") rest = [...p.axes];                // the boost switch stays on: new rest for the next step
       }
-      delete m.restButtons; rc.save(m); show(-1); return;
+      if (kind === "rev") { delete m.restButtons; rc.save(m); show(-1); return; }
     }
     show(step + 1);
   }

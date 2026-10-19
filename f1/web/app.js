@@ -458,7 +458,7 @@ function makeVeh() {
 const keys = {};
 addEventListener("keydown", (e) => { keys[e.code] = true; if (e.code === "KeyC") nextCam(); if (e.code === "KeyR") resetCar(); if (e.code === "Space") e.preventDefault(); lastInput = performance.now(); });
 addEventListener("keyup", (e) => { keys[e.code] = false; });
-let touchSteer = 0, touchGas = 0, touchBrake = 0, lastInput = -1e9, steerSm = 0, lastDt = 0.016;
+let rcRev = false, touchSteer = 0, touchGas = 0, touchBrake = 0, lastInput = -1e9, steerSm = 0, lastDt = 0.016;
 function bindTouch() {
   const ts = $("tsteer"), knob = ts.querySelector("i");
   const st = (e) => { const r = ts.getBoundingClientRect(); const t = [...e.touches].find((t) => t.clientX < r.right + 40) || e.touches[0]; if (!t) return;
@@ -494,8 +494,10 @@ function readInput() {
   const r = rc.read();                                   // RadioMaster Pocket as USB joystick (learned mapping)
   if (r) {
     if (Math.abs(r.steer) > 0.02 || Math.abs(r.thr) > 0.03 || r.boost) lastInput = performance.now();
-    if (r.thr > 0) thr = Math.max(thr, r.thr);
-    else if (r.thr < 0) { if (veh.s.vx > 0.4) brk = Math.max(brk, -r.thr); else thr = 0.6 * r.thr; }
+    // gas stick: forward = gas (backwards when the reverse switch is on, max 60 %), back = brake to a standstill
+    if (r.thr > 0) thr = r.rev ? Math.min(thr, -0.6 * r.thr) : Math.max(thr, r.thr);
+    else if (r.thr < 0) brk = Math.max(brk, -r.thr);
+    rcRev = r.rev;
     steer += r.steer; boost = boost || r.boost;
   }
   for (const gp of navigator.getGamepads ? navigator.getGamepads() : []) {
@@ -670,7 +672,7 @@ function hud() {
   $("tmp").textContent = Math.round(T); $("btm").style.width = Math.min(100, Math.max(0, (T - c.Tamb) / (c.Tlock - c.Tamb) * 100)) + "%";
   $("btm").style.background = T < c.Trearm ? "#33d17a" : T < c.Tlock - 6 ? "#f6c344" : "#ff3b30";
   const bx = $("boost"); bx.classList.toggle("on", s.boost); bx.classList.toggle("lock", !!s.boostLock);
-  $("bstate").textContent = s.boostLock === "heet" ? "TE HEET" : s.boostLock === "batterij" ? "BATTERIJ" : s.boost ? "BOOST" : "boost klaar";
+  $("bstate").textContent = (rcRev ? "R · " : "") + (s.boostLock === "heet" ? "TE HEET" : s.boostLock === "batterij" ? "BATTERIJ" : s.boost ? "BOOST" : "boost klaar");
   $("lt").textContent = TRACK === "recht" ? `${Math.round(Math.max(0, s.x + odoOff))} m` : fmt(Math.max(0, s.t - lapStart));
 }
 
