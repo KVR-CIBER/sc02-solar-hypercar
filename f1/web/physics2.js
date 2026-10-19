@@ -6,14 +6,24 @@ export const BATTERIES = {
   lipo3s: { name: "3S LiPo 1300", cells: 3, vFull: 4.2, vNom: 3.75, vEmpty: 3.4, Rb: 0.045, mAh: 1300, mass: 0.110 },
 };
 const HD3 = { ke: 0.00148, R: 0.5, I0: 0.6, J: 1.1e-7 };   // Tamiya Hyper-Dash 3 (estimate, see motors.json)
+// drivetrains: the car now runs ONE brushless 2435 4500 KV + 40 A ESC on 11:35 (target ~110 km/h, no aluminium floor);
+// the old 2x 130 brushed + DRV8874 setup stays selectable for comparison.
+export const DRIVES = {
+  bl2435: { name: "brushless 2435 4500KV + 40 A ESC", mot: { ke: 60 / (2 * Math.PI * 4500), R: 0.045, I0: 1.2, J: 1.6e-6 }, nMot: 1, G: 35 / 11,
+            Ilim: 40, rdsDrv: 0.006, RthDrv: 12, CthDrv: 8, nDrv: 1, TdrvLock: 100, TdrvRearm: 80, TdrvShutdown: 120,
+            Cth: 45, Rth: 6, Tlock: 100, Trearm: 75, Rdrv: 0.01, vMotorMax: 7.4, rpmMax: 55000, massAdd: 0.044 },
+  br130: { name: "2x 130 brushed + DRV8874", mot: HD3, nMot: 2, G: 35 / 10, Ilim: 12, rdsDrv: 0.2, RthDrv: 18, CthDrv: 2, nDrv: 2,
+           TdrvLock: 140, TdrvRearm: 100, TdrvShutdown: 170, Cth: 28, Rth: 10, Tlock: 90, Trearm: 70, Rdrv: 0.06, vMotorMax: 4.8, rpmMax: 38000, massAdd: 0 },
+};
 
 export function createVehicle(o = {}) {
+  const D = DRIVES[o.drive || 'bl2435'];
   const c = {
     mass: 0.715, wb: 0.230, cgFromRear: 0.098, hCg: 0.026, Iz: 0.0098,
     rRear: 0.022, rFront: 0.021, G: 35 / 10, nMot: 2, eta: 0.92, Rdrv: 0.06,
     mu: 0.95, B: 8, C: 1.45, muF: 0.9, BF: 6, Crr: 0.015, CdA: 0.0065, ClA: 0.006, rho: 1.2,   // front tyres narrower (15 vs 20 mm): less grip, softer → stable understeer
     steerMax: 20 * Math.PI / 180, steerRate: 9.0,
-    battery: "lipo3s", vMotorMax: 4.8, tc: true, launch: true,
+    battery: "lipo3s", tc: true, launch: true,
     pPi: 0, pEsp: 0.6, pServoIdle: 0.12, convEff: 0.9,         // no Pi anymore: ESP32-S3 + ELRS C3 ~0.6 W
     // boost ("overclock"): the firmware lets the H-bridge put boostGain x the normal motor voltage on the motors, but
     // only while the motors are cool enough and the battery holds its voltage. Same model runs in the car firmware,
@@ -25,12 +35,13 @@ export function createVehicle(o = {}) {
     // motor driver heating (was DRV8871: 0.565 ohm, 3.55 A - too hot). Now DRV8874: 0.2 ohm, 6 A. HSOP-8 on a 4-layer board ~35 K/W, ~0.8 J/K; its own
     // thermal shutdown is ~175 C. The firmware estimates this from the INA226 current and stops boost first.
     rdsDrv: 0.2, RthDrv: 18, CthDrv: 2.0, TdrvLock: 140, TdrvRearm: 100, TdrvShutdown: 170,   // DRV8874 (HTSSOP-16 PowerPAD) + small stick-on heatsink                   // firmware speed guard: brushed 130 motors (bushings, commutator) above ~38k rpm wear out fast
+    ...Object.fromEntries(Object.entries(D).filter(([k]) => !['name', 'mot', 'massAdd'].includes(k))),
     ...o,
   };
   const bat = BATTERIES[c.battery];
-  const m = c.mass - BATTERIES.lipo3s.mass + bat.mass;
+  const m = c.mass + D.massAdd - BATTERIES.lipo3s.mass + bat.mass;
   const a = c.wb - c.cgFromRear, b = c.cgFromRear;
-  const mot = { ke: HD3.ke, R: HD3.R / c.nMot, I0: HD3.I0 * c.nMot, J: HD3.J * c.nMot };
+  const mot = { ke: D.mot.ke, R: D.mot.R / c.nMot, I0: D.mot.I0 * c.nMot, J: D.mot.J * c.nMot };
   const Jw = 2 * 0.55 * 0.012 * c.rRear * c.rRear;           // two rear wheels on the axle
   const Jm = mot.J + Jw / (c.G * c.G);
   const s = {
@@ -121,7 +132,7 @@ export function createVehicle(o = {}) {
     s.Pheat = sh.Im * sh.Im * mot.R + Math.abs(mot.ke * mot.I0 * s.w) * 0.5;
     s.Tm += dt * (s.Pheat - (s.Tm - c.Tamb) * (1 + 0.08 * Math.abs(vx)) / c.Rth) / c.Cth;
     if (s.Tm >= c.Tlock) s.boostLock = 'heet';
-    const Ichip = Math.abs(sh.Im) / 2;                                          // one DRV8871 per motor
+    const Ichip = Math.abs(sh.Im) / c.nDrv;                                     // per driver (DRV8874 per motor, or the ESC)
     s.Tdrv += dt * (Ichip * Ichip * c.rdsDrv - (s.Tdrv - c.Tamb) / c.RthDrv) / c.CthDrv;
     if (s.Tdrv >= c.TdrvLock) s.boostLock = 'driver';
     if (s.Tdrv >= c.TdrvShutdown) s.drvOff = true;

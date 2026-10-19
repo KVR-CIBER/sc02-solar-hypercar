@@ -450,7 +450,7 @@ function buildCar(geo) {
 
 // ------------------------------------------------------------------ vehicle + input
 let veh = null;
-const cfg = { battery: "lipo3s", vMotorMax: 4.8, tc: true };
+const cfg = { battery: "lipo3s", drive: "bl2435", vMotorMax: 7.4, tc: true };
 function makeVeh() {
   veh = createVehicle({ ...cfg });
   veh.reset(-0.25, 0, 0);
@@ -697,6 +697,7 @@ seg("strk", (v) => { TRACK = v; try { localStorage.setItem("sc02.track", v); } c
 [...$("strk").children].forEach((b) => b.classList.toggle("on", b.dataset.v === TRACK));
 applyTrack();
 seg("slim", (v) => { cfg.vMotorMax = +v; veh.c.vMotorMax = +v; });
+seg("sdrv", (v) => { cfg.drive = v; cfg.vMotorMax = v === "br130" ? 4.8 : 7.4; resetCar(); });
 seg("slag", (v) => { lagMode = v; lagQ.length = 0; try { localStorage.setItem("sc02.lag", v); } catch { } });
 [...$("slag").children].forEach((b) => b.classList.toggle("on", b.dataset.v === lagMode));
 seg("stc", (v) => { cfg.tc = v === "1"; veh.c.tc = cfg.tc; });

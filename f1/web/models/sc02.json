@@ -20,7 +20,7 @@
   58.0
  ],
  "mass": {
-  "body (ASA)": 128.77863434809586,
+  "body (ASA)": 128.6754462146539,
   "canopy (smoke PETG)": 18.49853677896537,
   "rear_module": 16.46020745076064,
   "front_module": 8.725380947571193,
@@ -45,5 +45,5 @@
   "buck-boost + INA226 + 2x DRV8874": 12,
   "wires, screws, bearings, axles, magnets": 28
  },
- "total_g": 715.4732126892983
+ "total_g": 715.3700245558563
 }
