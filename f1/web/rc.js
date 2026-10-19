@@ -2,6 +2,9 @@
 // Every radio maps its channels to other HID axes, so the axes are learned once (sticks centred, steer right, full gas,
 // boost switch on) and kept in localStorage. Without a learned mapping an Xbox-style pad works as before (app.js).
 const KEY = "sc02.rc";
+// boost = switch SA, sent as channel 5 (AUX1). EdgeTX "USB Joystick" puts CH1..CH8 on axes 0..7, so CH5 = axis 4:
+// SA up = -100 % (off), SA down = +100 % (boost). Same channel goes over ExpressLRS to the real car (CRSF ch 5).
+const SA_BOOST = { type: "axis", idx: 4, off: -1, sign: 1 };
 let map = null;
 try { map = JSON.parse(localStorage.getItem(KEY) || "null"); } catch { }
 
@@ -17,8 +20,8 @@ export const rc = {
     if (!map || !p || p.id !== map.id) return null;
     const ax = (m) => Math.max(-1, Math.min(1, ((p.axes[m.axis] ?? 0) - m.center) * m.scale));
     const dz = (v, d) => (Math.abs(v) < d ? 0 : (v - Math.sign(v) * d) / (1 - d));
-    const b = map.boost;
-    const boost = !b ? false : b.type === "button" ? !!p.buttons[b.idx]?.pressed : ((p.axes[b.idx] ?? 0) - b.off) * b.sign > 0.5;
+    const b = map.boost || SA_BOOST;                // default: SA on CH5 (EdgeTX joystick: CH5 = axis 4)
+    const boost = b.type === "button" ? !!p.buttons[b.idx]?.pressed : ((p.axes[b.idx] ?? 0) - b.off) * b.sign > 0.5;
     return { steer: -dz(ax(map.steer), 0.03), thr: dz(ax(map.thr), 0.05), boost };
   },
   save(m) { map = m; try { localStorage.setItem(KEY, JSON.stringify(m)); } catch { } },
@@ -27,10 +30,10 @@ export const rc = {
 
 // ------------------------------------------------------------------ learn panel
 const STEPS = [
-  ["Laat alle sticks los (in het midden) en zet de boost-schakelaar UIT.", "center"],
+  ["Laat alle sticks los (in het midden) en zet SA naar boven (boost UIT).", "center"],
   ["Stuur volledig naar RECHTS en houd vast.", "steer"],
   ["Geef VOL GAS (stick naar boven) en houd vast.", "thr"],
-  ["Zet de boost-schakelaar AAN (bv. SA of SB). Geen boost? Klik 'overslaan'.", "boost"],
+  ["Zet SA naar beneden (BOOST aan). Anders schakelaar? Zet die om. 'overslaan' = SA op kanaal 5.", "boost"],
 ];
 
 export function bindRcPanel($) {
