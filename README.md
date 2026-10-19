@@ -104,9 +104,7 @@ python3 -m http.server 8000
   <img src="f1/docs/img/assemblage_3.jpg" width="32%" alt="Assemblage stap 3">
 </p>
 
-## Gemaakt met Claude Code
 
-Dit project is gebouwd door Kobe samen met [Claude Code](https://claude.com/claude-code), de AI-programmeerassistent van Anthropic. Claude schreef een groot deel van de simulatie, de CAD-code en de firmware. De ideeën, de keuzes, de feedback en het testen kwamen van Kobe.
 
 ## Niet in deze repo
 
