@@ -689,6 +689,9 @@ const wake = () => { if (!audio.muted) audio.start(); };       // browsers only 
 addEventListener("pointerdown", wake); addEventListener("keydown", wake);
 $("bcam").onclick = () => nextCam();
 $("bres").onclick = () => resetCar();
+function coolDown() { const s = veh.s; s.Tm = s.Tdrv = veh.c.Tamb; s.boostLock = ""; s.drvOff = false; }   // test button: motors + drivers back to air temperature
+$("btemp").onclick = () => coolDown();
+addEventListener("keydown", (e) => { if (e.code === "KeyT") coolDown(); });
 seg("sbat", (v) => { cfg.battery = v; resetCar(); });
 seg("strk", (v) => { TRACK = v; try { localStorage.setItem("sc02.track", v); } catch { } applyTrack(); if (car) { resetCar(); updateCamera(0.016, true); } });
 [...$("strk").children].forEach((b) => b.classList.toggle("on", b.dataset.v === TRACK));
