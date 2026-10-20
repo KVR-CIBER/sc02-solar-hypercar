@@ -19,3 +19,8 @@ secrets.h
 
 # reglement (auteursrecht organisatie) – niet publiceren
 docs/reglement*.pdf
+video/assembly/frames/
+video/assembly/final/
+video/assembly/*.glb
+video/assembly/*.hdr
+video/assembly/still_*.png
