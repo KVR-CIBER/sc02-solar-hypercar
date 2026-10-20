@@ -72,7 +72,7 @@ local function run(event)
   if simLive then
     lcd.drawText(LCD_W - 1, 1, "SIM", SMLSIZE + RIGHT + INVERS)
     local over = lim ~= 0 and simKmh > lim
-    lcd.drawNumber(76, 13, simKmh, XXLSIZE + RIGHT + ((over and getTime() % 50 < 25) and INVERS or 0))
+    lcd.drawNumber(2, 13, simKmh, XXLSIZE + ((over and getTime() % 50 < 25) and INVERS or 0))
     lcd.drawText(58, 46, "km/h", SMLSIZE)
   elseif sim then
     lcd.drawText(LCD_W - 1, 1, "SIM  USB-JOYSTICK", SMLSIZE + RIGHT + INVERS)
@@ -83,7 +83,7 @@ local function run(event)
       lcd.drawText(LCD_W - 1, 1, "LIVE", SMLSIZE + RIGHT)
       local kmh = math.floor(v + 0.5)
       local over = lim ~= 0 and kmh > lim
-      lcd.drawNumber(76, 13, kmh, XXLSIZE + RIGHT + ((over and getTime() % 50 < 25) and INVERS or 0))
+      lcd.drawNumber(2, 13, kmh, XXLSIZE + ((over and getTime() % 50 < 25) and INVERS or 0))
     else
       lcd.drawText(LCD_W - 1, 1, "GEEN TELEMETRIE", SMLSIZE + RIGHT + BLINK)
       lcd.drawText(24, 22, "--", DBLSIZE)
