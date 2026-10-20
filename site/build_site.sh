@@ -8,7 +8,7 @@ cp site/index.html "$OUT/"
 cp -r site/media "$OUT/"
 cp f1/docs/img/*.jpg f1/docs/img/*.gif "$OUT/img/"
 cp video/*_1080p.mp4 "$OUT/video/"
-cp -r f1/web/index.html f1/web/build.html f1/web/app.js f1/web/physics2.js f1/web/style.css f1/web/models f1/web/vendor "$OUT/sim/"
+cp -r f1/web/index.html f1/web/build.html f1/web/app.js f1/web/physics2.js f1/web/rc.js f1/web/audio.js f1/web/style.css f1/web/models f1/web/vendor "$OUT/sim/"
 # de download-knop in de sim wijst naar files/ → doorsturen naar de printbestanden op GitHub
 cat > "$OUT/sim/files/index.html" <<'HTML'
 <!doctype html><meta charset="utf-8"><title>Downloads</title>

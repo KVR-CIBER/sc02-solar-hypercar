@@ -38,10 +38,19 @@ def reader():
 class H(BaseHTTPRequestHandler):
     def log_message(self, *a): pass
 
+    def cors(self):                                     # any site may read it: localhost, GitHub Pages (https), lvdell
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Private-Network", "true")   # Chrome: public/LAN page -> localhost
+        self.send_header("Access-Control-Allow-Local-Network", "true")
+        self.send_header("Access-Control-Allow-Headers", "*")
+
+    def do_OPTIONS(self):
+        self.send_response(204); self.cors(); self.end_headers()
+
     def do_GET(self):
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream"); self.send_header("Cache-Control", "no-cache")
-        self.send_header("Access-Control-Allow-Origin", "*"); self.end_headers()
+        self.cors(); self.end_headers()
         try:
             while True:
                 fresh = state["name"] and time.time() - state["t"] < 0.5

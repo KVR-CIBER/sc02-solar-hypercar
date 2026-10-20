@@ -18,7 +18,7 @@ let map = null;                                     // mapping of the pad in use
 const br = { name: null, ch: null, btn: 0, t: 0, rest: null };
 (function connectBridge() {
   try {
-    const es = new EventSource("http://localhost:8091/");
+    const es = new EventSource("http://127.0.0.1:8091/");
     es.onmessage = (e) => { const d = JSON.parse(e.data);
       if (!d.name) { br.name = null; br.rest = null; return; }
       if (!br.rest) br.rest = [...d.ch];                      // switches as they are when the radio connects = 'off'
