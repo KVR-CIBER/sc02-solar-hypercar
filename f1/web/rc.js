@@ -26,6 +26,7 @@ const br = { name: null, ch: null, btn: 0, t: 0, rest: null };
     es.onerror = () => { es.close(); br.name = null; setTimeout(connectBridge, 3000); };
   } catch { setTimeout(connectBridge, 3000); }
 })();
+let lastSpeedPost = 0;
 const bridgeLive = () => br.name && performance.now() - br.t < 600;
 function bridgePad() {
   return { id: br.name + " (brug)", axes: br.ch, timestamp: br.t,
@@ -67,6 +68,12 @@ export const rc = {
   forget() { const p = this.pad(); if (p) delete maps[p.id]; map = null; try { localStorage.setItem(KEY, JSON.stringify(maps)); } catch { } },
   isLearned(id) { return !!maps[id]; },
   bridged() { return !!bridgeLive(); },
+  sendSpeed(kmh) {                                  // speed back to the Pocket screen (bridge -> USB serial), 5x per second
+    const now = performance.now();
+    if (!bridgeLive() || now - lastSpeedPost < 200) return;
+    lastSpeedPost = now;
+    fetch("http://127.0.0.1:8091/speed?v=" + kmh, { method: "POST", mode: "no-cors" }).catch(() => { });
+  },
 };
 
 // ------------------------------------------------------------------ learn panel

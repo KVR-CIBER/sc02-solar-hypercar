@@ -682,6 +682,7 @@ const fx = (v, d = 1) => v.toFixed(d);
 function hud() {
   const s = veh.s, P = s.P;
   $("kmh").textContent = Math.round(s.speed * 3.6);
+  rc.sendSpeed(Math.round(s.speed * 3.6));
   $("vb").textContent = fx(s.Vbus, 1); $("ptot").textContent = fx(P.total, 1);
   $("soc").style.width = Math.round(s.soc * 100) + "%";
   $("soc").style.background = s.soc > 0.3 ? "#33d17a" : s.soc > 0.12 ? "#f6c344" : "#ff3b30";
