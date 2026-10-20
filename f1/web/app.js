@@ -458,7 +458,8 @@ function makeVeh() {
 const keys = {};
 addEventListener("keydown", (e) => { keys[e.code] = true; if (e.code === "KeyC") nextCam(); if (e.code === "KeyR") resetCar(); if (e.code === "Space") e.preventDefault(); lastInput = performance.now(); });
 addEventListener("keyup", (e) => { keys[e.code] = false; });
-let rcRev = false, boostAsk = false, speedLimit = -1, touchSteer = 0, touchGas = 0, touchBrake = 0, lastInput = -1e9, steerSm = 0, lastDt = 0.016;
+let menuLimit = 0; try { menuLimit = +(localStorage.getItem("sc02.limit") || 0); } catch { }   // settings / D-pad: for any controller
+let limNow = 0, rcRev = false, boostAsk = false, speedLimit = -1, touchSteer = 0, touchGas = 0, touchBrake = 0, lastInput = -1e9, steerSm = 0, lastDt = 0.016;
 function bindTouch() {
   const ts = $("tsteer"), knob = ts.querySelector("i");
   const st = (e) => { const r = ts.getBoundingClientRect(); const t = [...e.touches].find((t) => t.clientX < r.right + 40) || e.touches[0]; if (!t) return;
@@ -484,8 +485,8 @@ function lagAt(t) {                                      // car side: what the E
   while (lagQ.length && lagQ[0].arr <= t) lagHeld = lagQ.shift().inp;
   return lagHeld;
 }
-function sayLimit(l) {                                  // spoken like on the Pocket
-  if (speedLimit < 0 || !window.speechSynthesis) return;
+function sayLimit(l, force) {                           // spoken like on the Pocket
+  if ((speedLimit < 0 && !force) || !window.speechSynthesis) return;
   const u = new SpeechSynthesisUtterance(l ? `${l} kilometer per uur` : "geen limiet"); u.lang = "nl-BE"; u.rate = 1.1;
   speechSynthesis.cancel(); speechSynthesis.speak(u);
 }
@@ -504,7 +505,6 @@ function readInput() {
     else if (r.thr < 0) brk = Math.max(brk, -r.thr);
     rcRev = r.rev;
     if (r.limit !== speedLimit) { speedLimit = r.limit; sayLimit(r.limit); }
-    if (speedLimit > 0 && thr > 0) thr = Math.min(thr, Math.max(0, Math.min(1, (speedLimit - veh.s.speed * 3.6) / 6)));   // governor
     steer += r.steer; boost = boost || r.boost;
   }
   for (const gp of navigator.getGamepads ? navigator.getGamepads() : []) {
@@ -517,9 +517,18 @@ function readInput() {
     steer -= sx * Math.min(1, Math.abs(sx) * 1.2);
     if (gp.buttons[3]?.pressed && !gp._y) nextCam(); gp._y = gp.buttons[3]?.pressed;
     if (gp.buttons[0]?.pressed && !gp._a) resetCar(); gp._a = gp.buttons[0]?.pressed;
+    for (const [bi, d] of [[12, 1], [13, -1]]) {         // D-pad up/down: speed limit one step up/down (last step = none)
+      const pr = gp.buttons[bi]?.pressed;
+      if (pr && !gp["_d" + bi]) setMenuLimit(LIMIT_STEPS[(LIMIT_STEPS.indexOf(menuLimit) + d + LIMIT_STEPS.length) % LIMIT_STEPS.length], true);
+      gp["_d" + bi] = pr;
+    }
   }
   if (MOBILE) { thr = Math.max(thr, touchGas); if (touchBrake) { if (veh.s.vx > 0.4) brk = 1; else thr = -0.6; } steer -= touchSteer; }
   if (brk > 0.05) thr = 0;                              // brake always wins over gas (W + space used to keep accelerating)
+  // speed limit: the Pocket's scroll wheel and/or the settings (keyboard, Xbox pad, touch); the lowest one wins
+  const radioLim = r && speedLimit > 0 ? speedLimit : 0;
+  limNow = radioLim && menuLimit ? Math.min(radioLim, menuLimit) : radioLim || menuLimit;
+  if (limNow > 0 && thr > 0) thr = Math.min(thr, Math.max(0, Math.min(1, (limNow - veh.s.speed * 3.6) / 6)));   // governor
   // speed-sensitive steering (same limiter as the ESP firmware) + smoothing for digital keys
   const v = Math.abs(veh.s.vx), lim = Math.max(0.22, Math.min(1, 2.2 / (v + 0.6)));
   steerSm += (Math.max(-1, Math.min(1, steer)) * lim - steerSm) * Math.min(1, lastDt * 9);
@@ -680,7 +689,7 @@ function hud() {
   $("tmp").textContent = Math.round(T) + " / " + Math.round(s.Tdrv); $("btm").style.width = Math.min(100, Math.max(0, (T - c.Tamb) / (c.Tlock - c.Tamb) * 100)) + "%";
   $("btm").style.background = T < c.Trearm ? "#33d17a" : T < c.Tlock - 6 ? "#f6c344" : "#ff3b30";
   const bx = $("boost"); bx.classList.toggle("on", s.boost); bx.classList.toggle("lock", !!s.boostLock);
-  $("bstate").textContent = (speedLimit > 0 ? speedLimit + " km/h · " : "") + (rcRev ? "R · " : "") + (s.drvOff ? "DRIVER UIT" : s.boostLock === "heet" ? "MOTOR HEET" : s.boostLock === "driver" ? "DRIVER HEET" : s.boostLock === "batterij" ? "BATTERIJ" : s.boost ? "BOOST" : boostAsk ? "BOOST · geef gas" : "boost klaar");
+  $("bstate").textContent = (limNow > 0 ? limNow + " km/h · " : "") + (rcRev ? "R · " : "") + (s.drvOff ? "DRIVER UIT" : s.boostLock === "heet" ? "MOTOR HEET" : s.boostLock === "driver" ? "DRIVER HEET" : s.boostLock === "batterij" ? "BATTERIJ" : s.boost ? "BOOST" : boostAsk ? "BOOST · geef gas" : "boost klaar");
   $("lt").textContent = TRACK === "recht" ? `${Math.round(Math.max(0, s.x + odoOff))} m` : fmt(Math.max(0, s.t - lapStart));
 }
 
@@ -704,6 +713,14 @@ seg("strk", (v) => { TRACK = v; try { localStorage.setItem("sc02.track", v); } c
 [...$("strk").children].forEach((b) => b.classList.toggle("on", b.dataset.v === TRACK));
 applyTrack();
 seg("slim", (v) => { cfg.vMotorMax = +v; veh.c.vMotorMax = +v; });
+const LIMIT_STEPS = [0, 20, 40, 60, 80, 100];
+function setMenuLimit(v, speak) {
+  menuLimit = +v; try { localStorage.setItem("sc02.limit", String(menuLimit)); } catch { }
+  [...$("smax").children].forEach((b) => b.classList.toggle("on", +b.dataset.v === menuLimit));
+  if (speak) sayLimit(menuLimit, true);
+}
+seg("smax", (v) => setMenuLimit(v, true));
+setMenuLimit(menuLimit);
 seg("sdrv", (v) => { cfg.drive = v; cfg.vMotorMax = v === "br130" ? 4.8 : 7.4; resetCar(); });
 seg("slag", (v) => { lagMode = v; lagQ.length = 0; try { localStorage.setItem("sc02.lag", v); } catch { } });
 [...$("slag").children].forEach((b) => b.classList.toggle("on", b.dataset.v === lagMode));

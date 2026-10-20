@@ -104,7 +104,12 @@ export function bindRcPanel($) {
   }
   function next(skip = false) {
     const p = rc.pad();
-    if (!p) { msg.textContent = "Geen controller gevonden. Pocket via USB, kies 'USB Joystick (HID)', beweeg een stick."; return; }
+    if (!p) {
+      const safari = /^((?!chrome|android|crios|fxios).)*safari/i.test(navigator.userAgent);
+      msg.textContent = safari ? "Safari kan de Pocket niet lezen (USB/Bluetooth). Open deze pagina in Chrome of Edge; de Pocket-brug op je Mac doet de rest."
+        : "Geen controller gevonden. Pocket via USB ('USB Joystick (HID)') of Bluetooth, beweeg een stick. Chrome vraagt de eerste keer toegang tot je lokale netwerk: kies Toestaan.";
+      return;
+    }
     if (step < 0) { m = { id: p.id }; show(0); return; }
     const kind = STEPS[step][1];
     if (kind === "center") { rest = [...p.axes]; m.restButtons = p.buttons.map((b) => b.pressed); }
