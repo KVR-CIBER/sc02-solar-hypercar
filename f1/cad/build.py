@@ -23,7 +23,6 @@ BODY_CUTS = [
     C.cyl_y(3.4, 0, AXLE_RZ, -64, 64), C.box(-3.4, 3.4, -64, 64, 0, AXLE_RZ),          # rear axle + spacer through the liners (slot open downward)
     *[C.box(C.PYLON_X[0] - 0.4, C.PYLON_X[1] + 0.4, yp - 1.6, yp + 1.6, 0, 80) for yp in C.PYLON_Y],   # wing pylon slots
     *[C.box(216, 248, s * 46 - 7, s * 46 + 7, 0, 14.0) for s in (1, -1)],             # front lower arms + tie rods into the arches
-    C.box(118.5, 131.5, -78, -60, FLOOR_TOP - 0.5, FLOOR_TOP + 6.5),                   # USB-C of the floor PCB (f1/pcb), plug in from outside
 ]
 body_m, body_outer = BD.shell(extra_cuts=BODY_CUTS)
 # magnet bosses inside the body (match the floor clips)
@@ -49,8 +48,7 @@ P["tie_rod_L"] = C.tie_rod(True); P["tie_rod_R"] = C.tie_rod(False)
 P["steering_horn"] = C.steering_horn()
 P["splitter"] = C.splitter(); P["rear_wing"] = C.rear_wing(); P["diffuser"] = C.diffuser()
 CANOPY_M = BD.canopy_manifold()
-P["battery_tray"] = C.battery_tray(); P["pi_tray"] = C.pi_tray()
-P["power_tray_L"] = C.side_tray(True); P["power_tray_R"] = C.side_tray(False); P["esp_bridge"] = C.esp_bridge()
+P["pcb_posts"] = C.pcb_posts(); P["battery_tray"] = C.battery_tray(); P["esc_tray"] = C.esc_tray()
 for i, (x, yi, yo) in enumerate(C.BODY_CLIPS):
     P[f"clip_{i}L"] = C.body_clip(x, yi, yo, 1); P[f"clip_{i}R"] = C.body_clip(x, yi, yo, -1)
 P["spur"] = C.spur(); P["pinion"] = C.pinion()
@@ -63,17 +61,16 @@ P["floor"] = C.floor_solid()
 for (x, y, d) in C.FLOOR_HOLES:
     P["floor"] = P["floor"].cut(C.cyl_z(d / 2, x, y, 0, 20)).cut(
         cq.Workplane("XY").add(cq.Solid.makeCone(3.2, d / 2, 1.6, C.V(x, y, FLOOR_Z - 0.01), C.V(0, 0, 1))))
-for (x, y) in ((70, -46),):                                                    # power switch from below
+for (x, y) in ((100, -47),):                                                   # power switch from below
     P["floor"] = P["floor"].cut(C.cyl_z(3.1, x, y, 0, 20))
-for i in range(6):                                                              # Pi cooling slots
-    P["floor"] = P["floor"].cut(C.rbox(PI_X0 + 18 + i * 9, PI_X0 + 22 + i * 9, -20, 20, 0, 20, 1.9))
+for i in range(4):                                                              # ESC heatsink cooling slots
+    P["floor"] = P["floor"].cut(C.rbox(C.ESC_X[0] + 6 + i * 6, C.ESC_X[0] + 9 + i * 6, C.ESC_Y[0] + 6, C.ESC_Y[1] - 6, 0, 20, 1.4))
 log("floor")
 B = C.bought()
 import real_parts as RP
 MOTREAL = {}
-for tag, cx in (("F", C.CD), ("B", -C.CD)):
-    for k, v in RP.motor_130(cx, AXLE_RZ, C.MOT_FACE_Y).items():
-        MOTREAL[f"motor_{tag}_{k}" if k != "pinion" else f"pinion_{tag}"] = v
+for k, v in RP.motor_2435(C.CD, AXLE_RZ, C.MOT_FACE_Y).items():                 # one 2435 brushless (tag F kept for the web)
+    MOTREAL[f"motor_F_{k}" if k != "pinion" else "pinion_F"] = v
 
 def place_wheel(w, x, y, W, outer_left):
     """local wheel: axis +Z, z=0 = outer (cover) face. Put the cover facing outward."""
@@ -137,16 +134,16 @@ if "--nomold" not in sys.argv:
 def overlap(a, b):
     try: return a.intersect(b).val().Volume()
     except Exception: return -1
-pairs = [("rear_module", "rear_bearing_L"), ("rear_module", "battery_tray"), ("battery_tray", "pi_tray"), ("pi_tray", "esp_bridge"),
-         ("battery_tray", "power_tray_L"), ("esp_bridge", "power_tray_L"), ("front_module", "front_upright_L"), ("front_module", "pi_tray"), ("rear_module", "spur"), ("floor", "spur"), ("motor_clamp", "spur"), ("rear_bearing_L", "spur"), ("rear_bearing_R", "spur")]
+pairs = [("rear_module", "rear_bearing_L"), ("rear_module", "pcb_posts"), ("rear_module", "motor_clamp"), ("battery_tray", "pcb_posts"),
+         ("esc_tray", "pcb_posts"), ("front_module", "front_upright_L"), ("rear_module", "spur"), ("floor", "spur"), ("motor_clamp", "spur"), ("rear_bearing_L", "spur"), ("rear_bearing_R", "spur")]
 for a, b in pairs:
     v = overlap(P[a], P[b])
     if v > 1: log(f"OVERLAP {a} x {b}: {v:.1f} mm3")
 # body vs everything inside (mesh)
-for k in ("rear_module", "motor_clamp", "battery_tray", "pi_tray", "esp_bridge", "power_tray_L", "power_tray_R", "front_module"):
+for k in ("rear_module", "motor_clamp", "pcb_posts", "battery_tray", "esc_tray", "front_module"):
     v = (body_m ^ mf.M(P[k])).volume()
     if v > 2: log(f"BODY OVERLAP {k}: {v:.1f} mm3")
-for k in ("battery", "pi4", "esp32s3", "power", "servo", "motor_F", "motor_B"):
+for k in [k for k in B if k not in ("panel", "axle_rear")]:
     v = (body_m ^ mf.M(B[k])).volume()
     if v > 2: log(f"BODY OVERLAP bought {k}: {v:.1f} mm3")
 for k in ("rim_RL", "tyre_RL", "rim_FL", "tyre_FL"):
@@ -163,14 +160,14 @@ for side, sgn in (("L", 1), ("R", -1)):
 ALL = {"body": body_m, "canopy": CANOPY_M}
 for k, v in P.items():
     if k not in ("pinion",): ALL[k] = mf.M(v)
-for k in ("panel", "battery", "pi4", "esp32s3", "power", "servo", "axle_rear"): ALL[k] = mf.M(B[k])
-for tag in ("F", "B"):
-    ALL["motor_" + tag] = mf.M(U_ := MOTREAL[f"motor_{tag}_can"].union(MOTREAL[f"motor_{tag}_cap"]))
-    ALL["pinion_" + tag] = mf.M(MOTREAL["pinion_" + tag])
+for k in B: ALL[k] = mf.M(B[k])
+ALL["motor"] = mf.M(MOTREAL["motor_F_can"].union(MOTREAL["motor_F_cap"]).union(MOTREAL["motor_F_term"]))
+ALL["motor_shaft"] = mf.M(MOTREAL["motor_F_shaft"]); ALL["pinion_F"] = mf.M(MOTREAL["pinion_F"])
 for k, v in WHEELS.items(): ALL[k] = mf.M(v)
 for k in [k for k in P if k.startswith("clip_")]: ALL[k] = mf.M(P[k])
 PRESS = {frozenset(p) for p in [("axle_rear", "spur"), ("axle_rear", "rear_bearing_L"), ("axle_rear", "rear_bearing_R"), ("axle_rear", "wheel_spacer"),
-                                ("axle_rear", "rim_RL"), ("axle_rear", "rim_RR"), ("axle_rear", "body")]}
+                                ("axle_rear", "rim_RL"), ("axle_rear", "rim_RR"), ("axle_rear", "body"),
+                                ("motor_shaft", "motor"), ("pcb", "pcb_xt60"), ("pcb", "pcb_hdr_esc"), ("pcb", "pcb_hdr_hall")]}
 import itertools
 bad = 0
 for (a, ma), (b2, mb) in itertools.combinations(ALL.items(), 2):
@@ -187,14 +184,14 @@ mass = {}
 mass["body (ASA)"] = mf.vol(body_m) * dens["ASA"]
 mass["canopy (smoke PETG)"] = mf.vol(CANOPY_M) * dens["PETG"]
 for k, mat in (("rear_module", "ASA"), ("front_module", "ASA"), ("splitter", "ASA"), ("rear_wing", "ASA"), ("diffuser", "ASA"),
-               ("battery_tray", "ASA"), ("pi_tray", "ASA"), ("esp_bridge", "ASA"), ("power_tray_L", "ASA"), ("power_tray_R", "ASA")):
+               ("pcb_posts", "ASA"), ("battery_tray", "ASA"), ("esc_tray", "ASA")):
     mass[k] = P[k].val().Volume() / 1000 * dens[mat] * 0.9
 mass["uprights+clips+small"] = sum(P[k].val().Volume() for k in P if k.startswith(("rear_bearing", "bearing_cap", "wheel_spacer", "front_upright", "clip_", "tie_rod", "steering", "motor_clamp", "spur"))) / 1000 * 1.1
 mass["floor (2 mm acrylic)"] = P["floor"].val().Volume() / 1000 * dens["ACRYLIC"]
 mass["4 rims (PLA)"] = 2 * (RIM["R"].val().Volume() + RIM["F"].val().Volume()) / 1000 * dens["PLA"] * 0.9
 mass["4 tyres (PU/silicone)"] = 2 * (TYRE["R"].val().Volume() + TYRE["F"].val().Volume()) / 1000 * dens["RUBBER"]
-BOUGHT = {"kit panel": 25, "Pi 4": 46, "ESP32-S3": 10, "servo MG90S": 14, "2x 130 motor": 38, "battery 3S 1300 / 4xAA+holders": 115,
-          "buck-boost + INA226 + 2x DRV8874": 12, "wires, screws, bearings, axles, magnets": 28}
+BOUGHT = {"kit panel": 25, "drive PCB v3 (S3 + ELRS)": 22, "servo MG90S": 14, "2435 brushless 4500 kV": 60, "ESC 35 A": 26,
+          "LiPo 2S 1000 mAh": 62, "wires, screws, bearings, axles, magnets": 28}
 mass.update(BOUGHT)
 total = sum(mass.values())
 json.dump(dict(parts={k: round(v, 1) for k, v in mass.items()}, total_g=round(total, 1),
@@ -216,7 +213,7 @@ if "--noweb" not in sys.argv:
     add("splitter", P["splitter"], (0.05, 0.05, 0.055), 0.35); add("rear_wing", P["rear_wing"], (0.05, 0.05, 0.055), 0.35)
     add("diffuser", P["diffuser"], (0.06, 0.06, 0.07), 0.6)
     add("floor", P["floor"], (0.03, 0.03, 0.035), 0.15)
-    for k in ("rear_module", "motor_clamp", "front_module", "battery_tray", "pi_tray", "esp_bridge", "power_tray_L", "power_tray_R"):
+    for k in ("rear_module", "motor_clamp", "front_module", "pcb_posts", "battery_tray", "esc_tray"):
         add(k, P[k], (0.2, 0.21, 0.23), 0.6)
     for k in P:
         if k.startswith("clip_"): add(k, P[k], (0.2, 0.21, 0.23), 0.6)
@@ -226,8 +223,11 @@ if "--noweb" not in sys.argv:
         add(k, P[k], (0.5, 0.5, 0.52), 0.3, 0.8)
     add("spur", P["spur"], (0.9, 0.9, 0.88), 0.5)
     add("panel", B["panel"], (0.04, 0.07, 0.22), 0.1, 0.3)
-    add("battery", B["battery"], (0.1, 0.1, 0.12), 0.5); add("pi4", B["pi4"], (0.05, 0.4, 0.15), 0.5)
-    add("esp32s3", B["esp32s3"], (0.05, 0.25, 0.12), 0.5); add("power", B["power"], (0.55, 0.1, 0.1), 0.5)
+    add("battery", B["battery"], (0.1, 0.1, 0.12), 0.5); add("pcb", B["pcb"], (0.02, 0.09, 0.05), 0.35)
+    add("esc", B["esc"], (0.08, 0.22, 0.6), 0.45)
+    for k in [k for k in B if k.startswith("pcb_")]:
+        add(k, B[k], (0.75, 0.76, 0.78) if k in ("pcb_esp32s3", "pcb_elrs_c3", "pcb_usbc") else (0.85, 0.75, 0.2) if k == "pcb_xt60"
+            else (0.12, 0.12, 0.13), 0.3, 0.8 if k in ("pcb_esp32s3", "pcb_elrs_c3", "pcb_usbc") else 0.0)
     add("servo", B["servo"], (0.1, 0.25, 0.75), 0.5)
     for k, v in MOTREAL.items():
         mat = {"can": ((0.78, 0.79, 0.82), 0.22, 1.0), "cap": ((0.04, 0.04, 0.045), 0.55, 0.0), "term": ((0.8, 0.62, 0.28), 0.3, 1.0),

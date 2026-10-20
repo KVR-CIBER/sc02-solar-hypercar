@@ -168,7 +168,8 @@ C('C29', '1u', 'VBUS_USB', 'GND', (73.0, 6.5, 0), G)
 # ---------------------------------------------------------------- connectors: servo, hall, panel, lights
 G = 'Aansluitingen'
 P('J4', 'Connector_Generic:Conn_01x03', HDR3, 'SERVO', {1: 'GND', 2: 'V5', 3: 'SERVO_SIG'}, (110.0, -22.5, 90),
-  mpn='1x3 pin header 2.54 (MG90S: brown GND, red 5 V, orange signal)', group=G)
+  mpn='NOT FITTED: solder the MG90S lead straight into the holes, flat (battery tray sits 8 mm above). Brown GND, red 5 V, orange signal',
+  dnp=True, group=G)
 R('R18', '100', 'SERVO_PWM', 'SERVO_SIG', (112.0, -18.6, 0), G)
 P('J5', 'Connector_Generic:Conn_01x03', HDR3, 'HALL', {1: 'GND', 2: 'V5', 3: 'HALL'}, (57.0, 7.5, 0),
   mpn='1x3 pin header 2.54 (A3144: GND, 5 V, out)', group=G)

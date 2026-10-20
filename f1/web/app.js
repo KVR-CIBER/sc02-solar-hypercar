@@ -397,8 +397,10 @@ function buildCar(geo) {
   mk("splitter", M.splitterM, cad, 30); mk("floor", M.floor, cad, 20);
   { const m = new THREE.Mesh(new THREE.PlaneGeometry(PANEL_MM[0], PANEL_MM[1]), M.panel); m.position.set(PANEL_X0 + 0.3 + PANEL_MM[0] / 2, 0, 41.96); m.receiveShadow = true; cad.add(m); meshes.panel = m; }
   const inside = new THREE.Group(); cad.add(inside);
-  for (const n of Object.keys(geo)) if (/^(rear_module|motor_clamp|front_module|battery_tray|pi_tray|esp_bridge|power_tray|clip_|battery|pi4|esp32s3|power|servo|motor_|bearing|axle_rear|tie_rod|steering_horn)/.test(n))
-    mk(n, n === "pi4" ? new THREE.MeshStandardMaterial({ color: 0x1d7a3a, roughness: 0.5 }) : n === "battery" ? new THREE.MeshStandardMaterial({ color: 0x15171c, roughness: 0.4 })
+  for (const n of Object.keys(geo)) if (/^(rear_module|motor_clamp|front_module|battery_tray|pcb_posts|esc_tray|clip_|battery|pcb|esc|servo|motor_|bearing|axle_rear|tie_rod|steering_horn)/.test(n))
+    mk(n, n === "pcb" ? new THREE.MeshStandardMaterial({ color: 0x0b3d22, roughness: 0.35 }) : n === "esc" ? new THREE.MeshStandardMaterial({ color: 0x1f4fa8, roughness: 0.45 })
+      : n === "pcb_xt60" ? new THREE.MeshStandardMaterial({ color: 0xd9b23a, roughness: 0.4 }) : /^pcb_(esp32s3|elrs_c3|usbc)$/.test(n) ? new THREE.MeshStandardMaterial({ color: 0xc0c3c8, metalness: 1, roughness: 0.3 })
+      : n.startsWith("pcb_") ? new THREE.MeshStandardMaterial({ color: 0x1b1c1f, roughness: 0.5 }) : n === "battery" ? new THREE.MeshStandardMaterial({ color: 0x15171c, roughness: 0.4 })
       : n.endsWith("_can") ? new THREE.MeshPhysicalMaterial({ color: 0xc8cbd0, metalness: 1, roughness: 0.2 })
       : n.endsWith("_cap") ? new THREE.MeshStandardMaterial({ color: 0x0b0b0c, roughness: 0.5 })
       : n.endsWith("_term") ? new THREE.MeshStandardMaterial({ color: 0xc9a24a, metalness: 1, roughness: 0.3 })

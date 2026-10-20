@@ -19770,7 +19770,7 @@
 				)
 			)
 		)
-		(property "MPN" "1x3 pin header 2.54 (MG90S: brown GND, red 5 V, orange signal)"
+		(property "MPN" "NOT FITTED: solder the MG90S lead straight into the holes, flat (battery tray sits 8 mm above). Brown GND, red 5 V, orange signal"
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
@@ -19783,7 +19783,7 @@
 			)
 		)
 		(path "/aa28ca33-d2f0-5d8b-9e74-c3e5a9dc2bb7")
-		(attr through_hole)
+		(attr through_hole exclude_from_pos_files exclude_from_bom dnp)
 		(duplicate_pad_numbers_are_jumpers no)
 		(fp_line
 			(start -1.38 -1.38)

@@ -44,7 +44,6 @@ geel ESP,D8,LED_0603_1608Metric,1,LED 0603 yellow,C2287
 USB-C,J8,USB_C_Receptacle_HRO_TYPE-C-31-M-12,1,HRO TYPE-C-31-M-12 (board edge),C165948
 5k1,"R27,R28",R_0603_1608Metric,2,0603 5k1 1%,C23186
 USBLC6-2SC6,U10,SOT-23-6,1,USBLC6-2SC6,C2687116
-SERVO,J4,PinHeader_1x03_P2.54mm_Vertical,1,"1x3 pin header 2.54 (MG90S: brown GND, red 5 V, orange signal)",C49257
 HALL,J5,PinHeader_1x03_P2.54mm_Vertical,1,"1x3 pin header 2.54 (A3144: GND, 5 V, out)",C49257
 ZONNEPANEEL,J6,JST_XH_B2B-XH-A_1x02_P2.50mm_Vertical,1,JST XH 2-pin (B2B-XH-A): plug the solar panel in (5 V 1 W),C158012
 100k,"R22,R26",R_0603_1608Metric,2,0603 100k 1%,C25803

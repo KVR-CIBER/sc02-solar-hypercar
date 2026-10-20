@@ -15999,7 +15999,7 @@
 		(exclude_from_sim no)
 		(in_bom yes)
 		(on_board yes)
-		(dnp no)
+		(dnp yes)
 		(uuid "aa28ca33-d2f0-5d8b-9e74-c3e5a9dc2bb7")
 		(property "Reference" "J4"
 			(at 226.06 29.25 0)
@@ -16035,7 +16035,7 @@
 				(hide yes)
 			)
 		)
-		(property "MPN" "1x3 pin header 2.54 (MG90S: brown GND, red 5 V, orange signal)"
+		(property "MPN" "NOT FITTED: solder the MG90S lead straight into the holes, flat (battery tray sits 8 mm above). Brown GND, red 5 V, orange signal"
 			(at 226.06 35.56 0)
 			(effects
 				(font

@@ -6,8 +6,8 @@ from p import *
 from body import box, cyl, V
 from gears import spur_gear
 
-CAN_L, CAP_L = 21.6, 3.6          # metal can + plastic end bell = 25.2 (MOT_L)
-R, HALF_T = MOT_W / 2, MOT_T / 2
+CAN_L, CAP_L = 21.6, 3.6          # (old 130 motor, kept for reference)
+R, HALF_T = 20.1 / 2, 15.1 / 2
 
 def _profile(cx, cz, y0, y1, inset=0.0):
     c = cyl(R - inset, (cx, y0, cz), (0, 1, 0), y1 - y0)
@@ -55,3 +55,31 @@ if __name__ == "__main__":
     for k, v in m.items():
         print(k, round(v.val().Volume(), 1), v.val().isValid())
         cq.exporters.export(v, f"/tmp/claude-mot_{k}.stl", tolerance=0.01, angularTolerance=0.08)
+
+
+def motor_2435(cx, cz, face_y):
+    """2435 sensorless brushless inrunner (24 x 35 mm, 3.175 shaft), axis +y, front face at y = face_y.
+    Returns can (anodised aluminium), cap (black end bells), term (3 gold bullet leads), shaft, pinion (11T m0.8)."""
+    r = MOT_D / 2
+    y0, y1 = face_y, face_y + MOT_L
+    can = cyl(r, (cx, y0 + 2.0, cz), (0, 1, 0), MOT_L - 4.0)
+    for i in range(6):                                                                # cooling grooves
+        yg = y0 + 7 + i * 4.2
+        can = can.cut(cyl(r + 1, (cx, yg, cz), (0, 1, 0), 1.0).cut(cyl(r - 0.5, (cx, yg - 1, cz), (0, 1, 0), 3)))
+    front = cyl(r - 0.4, (cx, y0, cz), (0, 1, 0), 2.0).union(cyl(MOT_BOSS / 2, (cx, y0 - 1.2, cz), (0, 1, 0), 1.2))
+    for sx in (-1, 1):
+        front = front.cut(cyl(1.5, (cx + sx * MOT_HOLES / 2, y0 - 0.5, cz), (0, 1, 0), 2.6))
+    back = cyl(r - 0.4, (cx, y1 - 2.0, cz), (0, 1, 0), 2.0).union(cyl(4.0, (cx, y1, cz), (0, 1, 0), 1.0))
+    cap = front.union(back)
+    terms = None
+    for i, a in enumerate((-30, 0, 30)):                                             # 3 phase leads with 3.5 mm bullets
+        x = cx + 6.5 * math.sin(math.radians(a)); z = cz + 6.5 * math.cos(math.radians(a))
+        t = cyl(0.9, (x, y1 - 0.5, z), (0, 1, 0), 9.0).union(cyl(1.75, (x, y1 + 8.0, z), (0, 1, 0), 8.0))
+        terms = t if terms is None else terms.union(t)
+    shaft = cyl(MOT_SHAFT_D / 2, (cx, y0 - MOT_SHAFT, cz), (0, 1, 0), MOT_SHAFT + MOT_L + 1.5)
+    pin, _ = spur_gear(MODULE, PINION_Z, GEAR_W, MOT_SHAFT_D)
+    pin = pin.union(cq.Workplane("XY").circle(3.5).circle(MOT_SHAFT_D / 2).extrude(2.0).translate((0, 0, GEAR_W)))   # hub + grub screw
+    ph = 180 / PINION_Z if SPUR_Z % 2 == 0 else 0.0
+    pin = pin.rotate((0, 0, 0), (0, 0, 1), ph).rotate((0, 0, 0), (1, 0, 0), 90).translate((cx, SPUR_Y + GEAR_W / 2, cz))
+    pin = pin.cut(shaft)
+    return dict(can=can, cap=cap, term=terms, shaft=shaft, pinion=pin)

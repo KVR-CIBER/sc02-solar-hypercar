@@ -58,15 +58,16 @@ const STEPS = [   // order + directions verified collision-free against the CAD 
   ["Tandwiel", ["spur"], [0, 0, 1], 90],
   ["Achteras schuift door lagers en tandwiel", ["axle_rear"], [0, 1, 0], 170],
   ["Lagerkapjes", ["bearing_cap_L", "bearing_cap_R"], [0, 0, 1], 80],
-  ["Motoren schuiven in de wieg", ["motor_F_can", "motor_F_cap", "motor_F_term", "motor_F_shaft", "pinion_F", "motor_B_can", "motor_B_cap", "motor_B_term", "motor_B_shaft", "pinion_B"], [0, 1, 0], 90],
+  ["Brushless 2435 schuift tegen de motorplaat", ["motor_F_can", "motor_F_cap", "motor_F_term", "motor_F_shaft", "pinion_F"], [0, 1, 0], 90],
   ["Motorklem", ["motor_clamp"], [0, 0, 1], 90],
   ["Stuurservo met stuurhoorn", ["servo", "steering_horn"], [0, 0, 1], 110],
   ["Fusees", ["front_upright_L", "front_upright_R"], "side", 60],
   ["Stuurstangen", ["tie_rod_L", "tie_rod_R"], [0, 0, 1], 60],
-  ["Batterijbak + LiPo", ["battery_tray", "battery"], [0, 0, 1], 130],
-  ["Raspberry Pi 4", ["pi_tray", "pi4"], [0, 0, 1], 130],
-  ["Voeding + motordrivers", ["power_tray_L", "power_tray_R", "power"], [0, 0, 1], 130],
-  ["ESP32-S3 op de brug", ["esp_bridge", "esp32s3"], [0, 0, 1], 130],
+  ["ESC naast de motor", ["esc_tray", "esc"], [0, 0, 1], 110],
+  ["Afstandsbussen", ["pcb_posts"], [0, 0, 1], 110],
+  ["Stuurprint v3 (ESP32-S3 + ELRS)", ["pcb", "pcb_xt60", "pcb_esp32s3", "pcb_elrs_c3", "pcb_elrs_e28", "pcb_coil", "pcb_usbc", "pcb_hdr_esc", "pcb_hdr_hall", "pcb_hdr_servo", "pcb_jst_solar"], [0, 0, 1], 130],
+  ["Batterijbak boven de print", ["battery_tray"], [0, 0, 1], 130],
+  ["LiPo 2S", ["battery"], [0, 0, 1], 130],
   ["Magneetclips", ["clip_0L", "clip_0R", "clip_1L", "clip_1R", "clip_2L", "clip_2R", "clip_3L", "clip_3R"], [0, 0, 1], 80],
   ["Splitter", ["splitter"], [0, 0, -1], 60],
   ["Diffuser", ["diffuser"], [-1, 0, 0], 80],
@@ -92,7 +93,7 @@ gltf.scene.traverse((o) => {
   else if (n === "canopy") o.material = new THREE.MeshPhysicalMaterial({ color: 0x0b0f16, roughness: 0.05, metalness: 0.3, clearcoat: 1 });
   else if (n === "panel") o.material = new THREE.MeshPhysicalMaterial({ color: 0x14204a, roughness: 0.2, metalness: 0.3, clearcoat: 1, clearcoatRoughness: 0.05 });
   else if (n === "floor") o.material = new THREE.MeshStandardMaterial({ color: 0x16171a, roughness: 0.55, metalness: 0.0, envMapIntensity: 0.35 });
-  const PRINTED = /^(rear_module|front_module|motor_clamp|rear_bearing|bearing_cap|front_upright|battery_tray|pi_tray|power_tray|esp_bridge|clip_|steering_horn|tie_rod)/;
+  const PRINTED = /^(rear_module|front_module|motor_clamp|rear_bearing|bearing_cap|front_upright|battery_tray|pcb_posts|esc_tray|clip_|steering_horn|tie_rod)/;
   if (PRINTED.test(n)) o.material = new THREE.MeshStandardMaterial({ color: 0xa7adb6, roughness: 0.55, metalness: 0.0 });   // light grey PLA
   o.material = o.material.clone();
 });

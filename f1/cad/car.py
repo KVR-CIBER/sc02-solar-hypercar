@@ -47,60 +47,63 @@ def floor_solid():
     f = cq.Workplane("XY").add(cq.Face.makeFromWires(floor_outline())).wires().toPending().extrude(FLOOR_T)
     return f.translate((0, 0, FLOOR_Z)).cut(box(-80, DIFF_X0, -120, 120, 0, 20))      # the diffuser forms the tail underside
 
-# ------------------------------------------------------------------ rear module (inside the body)
-MOT_FACE_Y = SPUR_Y - GEAR_W / 2 + MOT_SHAFT
-CR_IN = MOT_T / 2 + 0.3
-CR_R = MOT_W / 2 + 0.3
-CR_TOP = AXLE_RZ + MOT_W / 2 + 0.1
-CR_Y1 = MOT_FACE_Y + MOT_L + 1.0
-CLAMP_X = CD + CR_IN + 1.4 + 2.2
+# ------------------------------------------------------------------ rear module (inside the body): one 2435 brushless motor
+MOT_FACE_Y = SPUR_Y + GEAR_W / 2 + 4.0                 # pinion -10..-6 + 2 mm hub, 2 mm air, then the motor face
+MOT_R = MOT_D / 2
+PLATE_Y = (MOT_FACE_Y - 3.0, MOT_FACE_Y)               # motor plate (the motor bolts against it with 2x M3)
+SADDLE_Y = [(MOT_FACE_Y + 4, MOT_FACE_Y + 8), (MOT_FACE_Y + MOT_L - 9, MOT_FACE_Y + MOT_L - 5)]
+CLAMP_Y = (MOT_FACE_Y + 12.0, MOT_FACE_Y + 21.0)       # strap over the can, between the two saddles
+EAR_X = MOT_R + 2.6                                    # strap screws (M2.5) left and right of the can (inner one just clears the axle)
 PYLON_X = (-38.0, -29.0)
 PYLON_Y = (-19.0, 19.0)
 
 def rear_module():
-    base = rbox(-35, 31, -23, 23, FLOOR_TOP, FLOOR_TOP + 2.5, 4)
+    base = rbox(-35, CD + EAR_X + 2.6, -23, MOT_FACE_Y + MOT_L - 2, FLOOR_TOP, FLOOR_TOP + 2.5, 4)
     parts = [base]
-    for cx in (CD, -CD):
-        s = 1 if cx > 0 else -1
-        xin, xout = cx - s * (CR_IN + 1.2), cx + s * (CR_IN + 1.4)
-        c = box(min(xin, xout), max(xin, xout), MOT_FACE_Y - 2, CR_Y1, FLOOR_TOP, CR_TOP)
-        prof = cyl_y(CR_R, cx, AXLE_RZ, MOT_FACE_Y, CR_Y1 + 1).intersect(box(cx - CR_IN, cx + CR_IN, MOT_FACE_Y, CR_Y1 + 1, 0, 80))
-        prof = prof.union(box(cx - CR_IN, cx + CR_IN, MOT_FACE_Y, CR_Y1 + 1, AXLE_RZ, 80))
-        c = c.cut(prof)
-        c = c.cut(cyl_y(MOT_BOSS / 2 + 0.2, cx, AXLE_RZ, MOT_FACE_Y - 3, MOT_FACE_Y + 0.1))
-        c = c.cut(cyl_y(4.9, cx, AXLE_RZ, MOT_FACE_Y - 0.5, MOT_FACE_Y + 0.1))                      # embossed ring on the motor face
-        rp = MODULE * (PINION_Z + 2) / 2 + 0.4                                                      # motor + pinion slide in from behind
-        c = c.cut(cyl_y(rp, cx, AXLE_RZ, MOT_FACE_Y - 3, MOT_FACE_Y + 0.1)).cut(box(cx - rp, cx + rp, MOT_FACE_Y - 3, MOT_FACE_Y + 0.1, AXLE_RZ, 80))
-        c = c.cut(box(cx - MOT_BOSS / 2 - 0.2, cx + MOT_BOSS / 2 + 0.2, MOT_FACE_Y - 3, MOT_FACE_Y + 0.1, AXLE_RZ, 80))
-        c = c.cut(box(cx - CR_IN, cx + CR_IN, MOT_FACE_Y + 4, CR_Y1 - 4, FLOOR_TOP + 2.5, AXLE_RZ))
-        for y in (MOT_FACE_Y + 6, MOT_FACE_Y + MOT_L - 6):
-            c = c.union(cyl_z(2.4, s * CLAMP_X, y, FLOOR_TOP, CR_TOP)).cut(cyl_z(0.85, s * CLAMP_X, y, CR_TOP - 8, CR_TOP + 1))
-        parts.append(c)
+    zt = AXLE_RZ + MOT_R + 2.0
+    # motor plate: stands between spur and motor, hole for the pinion hub + motor boss, 2x M3 slots
+    plate = box(CD - MOT_R - 1.5, CD + MOT_R + 1.5, PLATE_Y[0], PLATE_Y[1], FLOOR_TOP, zt)
+    for sx in (-1, 1):                                                                        # side ribs on the motor side
+        plate = plate.union(box(CD + sx * (MOT_R + 0.3) - (1.2 if sx > 0 else 0), CD + sx * (MOT_R + 0.3) + (0 if sx > 0 else 1.2),
+                                PLATE_Y[1], PLATE_Y[1] + 6, FLOOR_TOP, AXLE_RZ))
+    plate = plate.cut(cyl_y(MOT_BOSS / 2 + 1.5, CD, AXLE_RZ, PLATE_Y[0] - 5, PLATE_Y[1] + 1))
+    for sx in (-1, 1):
+        x = CD + sx * MOT_HOLES / 2
+        plate = plate.cut(cyl_y(1.65, x, AXLE_RZ - 0.6, PLATE_Y[0] - 5, PLATE_Y[1] + 1)).cut(cyl_y(1.65, x, AXLE_RZ + 0.6, PLATE_Y[0] - 5, PLATE_Y[1] + 1)) \
+                     .cut(box(x - 1.65, x + 1.65, PLATE_Y[0] - 5, PLATE_Y[1] + 1, AXLE_RZ - 0.6, AXLE_RZ + 0.6))
+    parts.append(plate)
+    # two saddles under the can + ears for the strap
+    for (y0, y1) in SADDLE_Y:
+        parts.append(box(CD - MOT_R - 1.5, CD + MOT_R + 1.5, y0, y1, FLOOR_TOP, AXLE_RZ + 4))
+    for sx in (-1, 1):
+        parts.append(box(CD + sx * EAR_X - 2.2, CD + sx * EAR_X + 2.2, CLAMP_Y[0], CLAMP_Y[1], FLOOR_TOP, AXLE_RZ))
     # twin swan-neck pylons for the rear wing (pass through slots in the rear deck)
     for yp in PYLON_Y:
         parts.append(box(PYLON_X[0], PYLON_X[1], yp - 1.2, yp + 1.2, FLOOR_TOP, 50.0))
-        parts.append(box(PYLON_X[0], min(PYLON_X[1] + 6, -CD - CR_IN - 1.6), yp - 4, yp + 4, FLOOR_TOP, FLOOR_TOP + 10))   # foot stays clear of the motor
+        parts.append(box(PYLON_X[0], PYLON_X[1] + 6, yp - 4, yp + 4, FLOOR_TOP, FLOOR_TOP + 10))
     # hall sensor post next to the spur (2 magnets in the spur gear)
     parts.append(box(-4, 4, SPUR_Y - 9, SPUR_Y - 4.5, FLOOR_TOP, AXLE_RZ - 5).cut(box(-2.3, 2.3, SPUR_Y - 7.5, SPUR_Y - 4.4, AXLE_RZ - 9, AXLE_RZ)))
     m = U(*parts)
-    m = m.cut(box(-2.3, 2.3, MOT_FACE_Y - 3, CR_Y1 + 1, AXLE_RZ - 2.3, AXLE_RZ + 2.3))       # axle tunnel
-    rs = MODULE * (SPUR_Z + 2) / 2 + 1.0                                                  # slot in the base plate for the spur rim
+    m = m.cut(cyl_y(MOT_R + 0.3, CD, AXLE_RZ, PLATE_Y[1], PLATE_Y[1] + MOT_L + 2))                 # the can
+    for sx in (-1, 1):
+        m = m.cut(cyl_z(1.05, CD + sx * EAR_X, sum(CLAMP_Y) / 2, AXLE_RZ - 7, AXLE_RZ + 1))          # M2.5 pilot
+    m = m.cut(box(-2.3, 2.3, -23, MOT_FACE_Y + MOT_L, AXLE_RZ - 2.3, AXLE_RZ + 2.3))                 # axle tunnel
+    rs = MODULE * (SPUR_Z + 2) / 2 + 1.0                                                              # slot in the base plate for the spur rim
     m = m.cut(box(-rs, rs, SPUR_Y - GEAR_W / 2 - 0.8, SPUR_Y + GEAR_W / 2 + 0.8, FLOOR_TOP - 1, FLOOR_TOP + 3))
-    for (x, y) in ((-33, -17), (-33, 17), (27, -17), (27, 17), (-5, -18), (-5, 18)):
+    m = m.cut(cyl_y(MODULE * (PINION_Z + 2) / 2 + 0.8, CD, AXLE_RZ, SPUR_Y - GEAR_W / 2 - 1, PLATE_Y[0]))   # pinion runs free
+    for (x, y) in ((-33, -17), (-33, 17), (CD + EAR_X + 1, -17), (CD + EAR_X + 1, MOT_FACE_Y + MOT_L - 6), (-5, -18), (-5, 18)):
         m = floor_screw(x, y, part=m)
     return m
 
 def motor_clamp():
-    y0, y1 = MOT_FACE_Y + 3, MOT_FACE_Y + MOT_L - 3
-    xw = CLAMP_X + 2.4
-    c = rbox(-xw, xw, y0, y1, CR_TOP, CR_TOP + 2.0, 2)
-    for s in (1, -1):
-        c = c.union(box(s * CD - 4, s * CD + 4, y0, y1, AXLE_RZ + MOT_W / 2 + 0.05, CR_TOP))
-        for y in (MOT_FACE_Y + 6, MOT_FACE_Y + MOT_L - 6):
-            c = c.cut(cyl_z(1.15, s * CLAMP_X, y, CR_TOP - 1, CR_TOP + 4))
-    for yp in PYLON_Y:                                                         # clear the rear-wing pylons
-        c = c.cut(box(PYLON_X[0] - 0.6, PYLON_X[1] + 0.6, yp - 1.8, yp + 1.8, CR_TOP - 1, CR_TOP + 4))
-    return c.cut(box(-4.5, 4.5, y0 + 3, y1 - 3, CR_TOP - 1, CR_TOP + 4))
+    """Strap over the top of the can, 2x M2.5 into the ears of the rear module."""
+    y0, y1 = CLAMP_Y
+    ring = cyl_y(MOT_R + 2.2, CD, AXLE_RZ, y0, y1).cut(cyl_y(MOT_R + 0.2, CD, AXLE_RZ, y0 - 1, y1 + 1))
+    ring = ring.intersect(box(CD - 40, CD + 40, y0 - 1, y1 + 1, AXLE_RZ, 80))
+    c = ring.union(rbox(CD - EAR_X - 2.2, CD + EAR_X + 2.2, y0, y1, AXLE_RZ, AXLE_RZ + 2.4, 1.5).cut(cyl_y(MOT_R + 0.2, CD, AXLE_RZ, y0 - 1, y1 + 1)))
+    for sx in (-1, 1):
+        c = c.cut(cyl_z(1.4, CD + sx * EAR_X, sum(CLAMP_Y) / 2, AXLE_RZ - 1, AXLE_RZ + 5))
+    return c.cut(box(CD - 3, CD + 3, y0 - 1, y1 + 1, AXLE_RZ + MOT_R, AXLE_RZ + MOT_R + 3))                 # cooling window on top
 
 # ------------------------------------------------------------------ rear bearing blocks (inside the body, hidden)
 RB_Y = (53.0, 58.0)
@@ -420,84 +423,84 @@ def body_clip(x, yi, yo, s):
     c = c.cut(cyl_z(3.1, x, s * (yi + yo) / 2, CLIP_Z - 3.1, CLIP_Z + 1))      # 6x3 magnet
     return floor_screw(x, s * (yi + yo) / 2, part=c, depth=4)
 
-def battery_tray():
-    x0, x1, hw = BAY
-    t = rbox(x0, x1, -hw - 1.6, hw + 1.6, FLOOR_TOP, FLOOR_TOP + 1.2, 3)
-    walls = box(x0, x1, -hw - 1.6, hw + 1.6, FLOOR_TOP, FLOOR_TOP + 9).cut(box(x0 + 1.2, x1 - 1.2, -hw, hw, FLOOR_TOP - 1, 50))
-    t = t.union(walls).cut(box(x0 + 12, x1 - 12, -hw + 6, hw - 6, FLOOR_TOP - 1, FLOOR_TOP + 2))
-    for y in (-hw - 2.5, hw + 1):                                                   # velcro strap slots
-        t = t.cut(box(x0 + 30, x0 + 50, y, y + 1.5, FLOOR_TOP - 1, FLOOR_TOP + 10))
-    for (x, y) in ((x0 + 6, -hw + 4), (x0 + 6, hw - 4), (x1 - 6, -hw + 4), (x1 - 6, hw - 4)):
-        t = floor_screw(x, y, part=t, depth=1.2)
+def pcb_xy(bx, by):
+    """f1/pcb design coordinates -> car coordinates"""
+    return PCB_X0 + (by - BOARD_Y0), bx - PCB_YC
+
+PCB_HOLES = [pcb_xy(*h) for h in PCB_HOLES_B]
+TRAY_X = (PCB_X0 + 5.0, PCB_X0 + 5.0 + LIPO[0] + 3.2)          # battery tray along the car
+TRAY_Y = (0.4, 0.4 + LIPO[1] + 3.2)                             # left half (the tall connectors sit on the right edge)
+
+def pcb_posts():
+    """4 standoffs (4 mm) between the acrylic floor and the drive PCB; M3 bolts come up through the floor."""
+    t = None
+    for (x, y) in PCB_HOLES:
+        p = cyl_z(3.2, x, y, FLOOR_TOP, PCB_Z0).cut(cyl_z(1.65, x, y, FLOOR_TOP - 1, PCB_Z0 + 1))
+        t = p if t is None else t.union(p)
+        floor_screw(x, y, d=3.2)
     return t
 
-def pi_tray():
-    px, py, _ = PI4
-    x0, y0 = PI_X0, -py / 2
-    t = None
-    for (hx, hy) in PI4_HOLES:
-        post = cyl_z(3.0, x0 + hx, y0 + hy, FLOOR_TOP, FLOOR_TOP + 4).cut(cyl_z(1.1, x0 + hx, y0 + hy, FLOOR_TOP, FLOOR_TOP + 5))
-        t = post if t is None else t.union(post)
-    rail = U(box(x0 + 1, x0 + 6, y0 + 1, y0 + py - 1, FLOOR_TOP, FLOOR_TOP + 1.6), box(x0 + 59, x0 + 64, y0 + 1, y0 + py - 1, FLOOR_TOP, FLOOR_TOP + 1.6))
-    t = t.union(rail)
-    for (x, y) in ((x0 + 3.5, 0), (x0 + 61.5, 0)):
+def battery_tray():
+    """Tray for the 2S LiPo above the PCB: sleeves stand on the board at two mount holes (the M3 bolts from below clamp
+    floor + post + PCB + sleeve + tray), side walls + velcro strap slots."""
+    x0, x1 = TRAY_X; y0, y1 = TRAY_Y
+    zt = TRAY_Z + 1.6
+    t = rbox(x0, x1, y0, y1, TRAY_Z, zt, 3)
+    t = t.union(box(x0, x1, y0, y1, TRAY_Z, zt + 5).cut(box(x0 + 1.6, x1 - 1.6, y0 + 1.6, y1 - 1.6, TRAY_Z, 60)))
+    t = t.cut(rbox(x0 + 10, x1 - 10, y0 + 7, y1 - 7, TRAY_Z - 1, zt + 1, 3))                # lighter + air
+    for x in (x0 + 20, x1 - 30):                                                            # velcro strap slots
+        t = t.cut(box(x, x + 10, y0 - 1, y1 + 1, zt, zt + 3.2)).cut(box(x, x + 10, y0 + 2.2, y0 + 4.2, TRAY_Z - 1, zt + 1)) \
+             .cut(box(x, x + 10, y1 - 4.2, y1 - 2.2, TRAY_Z - 1, zt + 1))
+    zp = PCB_Z0 + PCB_T
+    for (x, y) in (PCB_HOLES[1], PCB_HOLES[3]):                                          # arms to two PCB mount holes
+        cx = min(max(x, x0 + 6), x1 - 6); cy = min(max(y, y0 + 6), y1 - 6)
+        arm = U(rbox(min(x, cx) - 3.4, max(x, cx) + 3.4, min(y, cy) - 3.4, max(y, cy) + 3.4, TRAY_Z, zt, 2), cyl_z(3.4, x, y, zp, zt))
+        t = t.union(arm).cut(cyl_z(1.65, x, y, zp - 1, zt + 6))
+    return t
+
+ESC_X = (3.0, 3.0 + ESC[0])
+ESC_Y = (-24.6 - ESC[1], -24.6)                                 # right of the motor, behind the PCB: short motor leads
+def esc_tray():
+    x0, x1 = ESC_X; y0, y1 = ESC_Y
+    t = rbox(x0 - 1.6, x1 + 1.6, y0 - 1.6, y1 + 1.6, FLOOR_TOP, FLOOR_TOP + 1.6, 2)
+    t = t.union(box(x0 - 1.6, x1 + 1.6, y0 - 1.6, y1 + 1.6, FLOOR_TOP, FLOOR_TOP + 5).cut(box(x0, x1, y0, y1, FLOOR_TOP + 1.6, 40)))
+    t = t.cut(box(x0 + 4, x1 - 4, y0 + 4, y1 - 4, FLOOR_TOP - 1, FLOOR_TOP + 2))            # heatsink sits over the floor slots
+    for x in (x0 + 8, x1 - 14):
+        t = t.cut(box(x, x + 6, y0 - 3, y1 + 3, FLOOR_TOP + 1.6, FLOOR_TOP + 3.2))
+    for (x, y) in ((x0 + 2, y0 + 2), (x1 - 2, y1 - 2)):
         t = floor_screw(x, y, part=t, depth=1.6)
     return t
 
-def side_tray(left=True):
-    """Sidepod trays next to the battery. Left: buck-boost 5 V + INA226. Right: 2x DRV8874 + fuse."""
-    x0, x1, y0, y1 = 62, 136, 37.5, 53.5
-    t = rbox(x0, x1, y0, y1, FLOOR_TOP, FLOOR_TOP + 1.6, 3)
-    t = t.cut(box(x0 + 8, x1 - 8, y0 + 5, y1 - 5, FLOOR_TOP - 1, FLOOR_TOP + 2))
-    for x in (x0 + 2, x1 - 5):
-        t = t.union(box(x, x + 3, y0, y1, FLOOR_TOP, FLOOR_TOP + 5))
-    for x in (x0 + 4, x1 - 4):
-        t = floor_screw(x, (y0 + y1) / 2, part=t, depth=1.6)
-    return t if left else mir(t)
-
-ESP_X = (114.0, 183.0)
-ESP_Z = 36.0                          # header pins (8.5 mm) clear the Pi 4 USB stack (z 27)
-def esp_bridge():
-    """Bridge over the Pi 4 that carries the ESP32-S3 DevKitC-1 (headers hang down between the rails)."""
-    x0, x1 = ESP_X
-    legs = []
-    for x in (x0 + 2, x1 - 9):
-        for s in (1, -1):
-            legs.append(rbox(x, x + 7, s * 29.6 - 1.0, s * 29.6 + 1.0, FLOOR_TOP, ESP_Z, 0.5))
-    deck = U(box(x0, x1, 4, 8.5, ESP_Z - 2.5, ESP_Z), box(x0, x1, -8.5, -4, ESP_Z - 2.5, ESP_Z),
-             box(x0 + 2, x0 + 9, -30.6, 30.6, ESP_Z - 2.5, ESP_Z), box(x1 - 9, x1 - 2, -30.6, 30.6, ESP_Z - 2.5, ESP_Z))
-    b = U(*legs, deck)
-    for s2 in (1, -1):
-        b = b.cut(box(x0, x1, min(s2 * 9.2, s2 * 12.3), max(s2 * 9.2, s2 * 12.3), ESP_Z - 3, ESP_Z + 1))      # header rows pass through
-    for x in (x0 + 5.5, x1 - 5.5):
-        for s in (1, -1):
-            b = floor_screw(x, s * 29.6, part=b, depth=4, d=2.2, pilot=1.7)
-    return b
+def pcb_model():
+    """Drive PCB v3 with its tall parts (for checks, the assembly and the renders)."""
+    zb, zt = PCB_Z0, PCB_Z0 + PCB_T
+    x0, y0 = pcb_xy(52.0, -68.0); x1, y1 = pcb_xy(138.0, 22.0)
+    b = rbox(min(x0, x1), max(x0, x1), min(y0, y1), max(y0, y1), zb, zt, 2)
+    for (x, y) in PCB_HOLES:
+        b = b.cut(cyl_z(1.6, x, y, zb - 1, zt + 1))
+    parts = {}
+    for name, (bx, by, sx, sy, h) in {                     # design centre, size along bx / by, height above the board
+            "xt60": (58.5, -63.0, 8.2, 15.6, 16.0), "esp32s3": (93.0, 9.0, 18.0, 25.5, 3.2), "elrs_c3": (127.0, -10.0, 13.2, 16.6, 2.5),
+            "elrs_e28": (120.5, 12.0, 24.0, 15.0, 2.8), "coil": (129.5, -57.5, 10.0, 10.0, 3.8), "usbc": (73.0, 18.2, 8.9, 7.3, 3.2),
+            "hdr_esc": (60.0, -16.0, 2.5, 7.6, 8.5), "hdr_hall": (57.0, 7.5, 2.5, 7.6, 8.5), "hdr_servo": (110.0, -22.5, 7.6, 8.0, 2.6),
+            "jst_solar": (70.0, -33.0, 7.4, 5.8, 9.8)}.items():
+        cx, cy = pcb_xy(bx, by)
+        parts[name] = box(cx - sy / 2, cx + sy / 2, cy - sx / 2, cy + sx / 2, zt, zt + h)
+    return b, parts
 
 # ------------------------------------------------------------------ bought parts (for the assembly / web only)
 def bought():
     B = {}
     px, py, pt = PANEL
     B["panel"] = box(PANEL_X0 + 0.3, PANEL_X0 + px + 0.3, -py / 2, py / 2, DECK_Z - pt, DECK_Z - 0.05)
-    x0, x1, hw = BAY
-    B["battery"] = rbox((x0 + x1) / 2 - 37.5, (x0 + x1) / 2 + 37.5, -17.5, 17.5, FLOOR_TOP + 1.2, FLOOR_TOP + 1.2 + 25, 2)       # 3S 1300 mAh
-    B["pi4"] = U(box(PI_X0, PI_X0 + 85, -28, 28, FLOOR_TOP + 4, FLOOR_TOP + 5.6),
-                 box(PI_X0 + 64, PI_X0 + 85, -26, 26, FLOOR_TOP + 5.6, FLOOR_TOP + 21),
-                 box(PI_X0 + 20, PI_X0 + 34, -7, 7, FLOOR_TOP + 5.6, FLOOR_TOP + 16))
-    B["esp32s3"] = U(box(ESP_X[0], ESP_X[1], -12.75, 12.75, ESP_Z, ESP_Z + 1.6), box(160, 178, -9, 9, ESP_Z + 1.6, ESP_Z + 4.4),
-                     box(ESP_X[0] + 3, ESP_X[1] - 3, -12, -9.5, ESP_Z - 8.5, ESP_Z), box(ESP_X[0] + 3, ESP_X[1] - 3, 9.5, 12, ESP_Z - 8.5, ESP_Z))
-    B["power"] = U(box(68, 101, 39, 53, FLOOR_TOP + 5, FLOOR_TOP + 14), box(104, 128, 39, 53, FLOOR_TOP + 5, FLOOR_TOP + 8),
-                   box(68, 88, -53, -39, FLOOR_TOP + 5, FLOOR_TOP + 10), box(92, 112, -53, -39, FLOOR_TOP + 5, FLOOR_TOP + 10),
-                   box(116, 130, -52, -41, FLOOR_TOP + 5, FLOOR_TOP + 12))
-    for cx in (CD, -CD):
-        m = cyl_y(MOT_W / 2, cx, AXLE_RZ, MOT_FACE_Y, MOT_FACE_Y + MOT_L).intersect(box(cx - MOT_T / 2, cx + MOT_T / 2, MOT_FACE_Y, MOT_FACE_Y + MOT_L, 0, 60))
-        m = m.union(cyl_y(MOT_BOSS / 2, cx, AXLE_RZ, MOT_FACE_Y - 1.5, MOT_FACE_Y))
-        B["motor_F" if cx > 0 else "motor_B"] = m
-        pin, _ = spur_gear(MODULE, PINION_Z, GEAR_W, 2.0)
-        pin = pin.union(cq.Workplane("XY").circle(1.0).extrude(MOT_SHAFT))
-        ph = 180 / PINION_Z if (cx > 0 or SPUR_Z % 2 == 0) else 0.0
-        B["pinion_F" if cx > 0 else "pinion_B"] = pin.rotate((0, 0, 0), (0, 0, 1), ph).rotate((0, 0, 0), (1, 0, 0), 90) \
-            .translate((cx, SPUR_Y + GEAR_W / 2, AXLE_RZ))
+    x0, x1 = TRAY_X; y0, y1 = TRAY_Y
+    lx, ly, lz = LIPO
+    B["battery"] = rbox(x0 + 1.6, x0 + 1.6 + lx, y0 + 1.6, y0 + 1.6 + ly, TRAY_Z + 1.6, TRAY_Z + 1.6 + lz, 2)      # 2S 1000 mAh
+    B["pcb"], PCBP = pcb_model()
+    B.update({"pcb_" + k: v for k, v in PCBP.items()})
+    ex0, ex1 = ESC_X; ey0, ey1 = ESC_Y
+    B["esc"] = U(rbox(ex0, ex1, ey0, ey1, FLOOR_TOP + 1.6, FLOOR_TOP + 1.6 + ESC[2] - 4, 2),
+                 *[box(ex0 + 2 + i * 3.2, ex0 + 3.6 + i * 3.2, ey0 + 1, ey1 - 1, FLOOR_TOP + 1.6 + ESC[2] - 4, FLOOR_TOP + 1.6 + ESC[2]) for i in range(9)])
     sx, sl, sh, fl = SERVO
     x0s = SERVO_X - 5.9
     B["servo"] = U(box(x0s, x0s + sx, -sl / 2, sl / 2, SERVO_Z0, SERVO_Z0 + sh),
@@ -507,8 +510,8 @@ def bought():
     return B
 
 def pinion():
-    """Motor pinion (print in PETG/PLA or mill from POM/aluminium): press fit on the 2 mm motor shaft, collar for grip."""
-    p, _ = spur_gear(MODULE, PINION_Z, GEAR_W, 1.95, hub_d=6.0, hub_len=3.0)
+    """Motor pinion 11T m0.8 (mill from POM/aluminium or buy): 3.175 mm bore + grub screw boss."""
+    p, _ = spur_gear(MODULE, PINION_Z, GEAR_W, MOT_SHAFT_D + 0.05, hub_d=7.0, hub_len=2.0)
     return p
 
 def spur():

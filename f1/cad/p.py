@@ -21,14 +21,13 @@ AXLE_D = 3.0
 BRG = (7.0, 3.0, 3.0)      # 683ZZ OD, ID, width
 BRG_FIT = 7.08
 PRESS_BORE = 2.90
-MODULE, PINION_Z, SPUR_Z, GEAR_W = 0.8, 10, 35, 4.0     # m0.8: CNC-able (0.8 mm cutter) and printable; 3.5:1 for ~30 km/h with 130 motors at 6 V
+MODULE, PINION_Z, SPUR_Z, GEAR_W = 0.8, 11, 35, 4.0     # m0.8: CNC-able (0.8 mm cutter); 35:11 = 3.18:1 for the 2435 brushless (sim: ~80 km/h, boost ~120)
 CD = MODULE * (PINION_Z + SPUR_Z) / 2 + 0.08
 SPUR_Y = -8.0
-MOT_W, MOT_T, MOT_L, MOT_BOSS, MOT_SHAFT = 20.1, 15.1, 25.2, 6.2, 8.5
+MOT_D, MOT_L, MOT_BOSS, MOT_SHAFT, MOT_SHAFT_D = 24.0, 35.0, 8.0, 12.0, 3.175   # 2435 sensorless inrunner (4500 kV), shaft 3.175 x 12
+MOT_HOLES = 16.0             # 2x M3 in the motor face, 16 mm apart (most 2430/2435 cans; check yours)
+ESC = (32.0, 25.0, 15.0)     # 1/16 brushless car ESC (25-35 A class) incl. heatsink, x y z
 PANEL = (60.0, 110.0, 3.0)  # AliExpress 1 W 5 V panel 110 x 60, mounted crosswise (x = 60 along the car, y = 110 across); measure thickness!
-PI4 = (85.0, 56.0, 1.6)    # board; holes 58 x 49, 3.5 mm from the edge
-PI4_HOLES = [(3.5, 3.5), (61.5, 3.5), (3.5, 52.5), (61.5, 52.5)]
-ESP = (69.0, 26.0)         # ESP32-S3 DevKitC-1
 SERVO = (22.8, 12.2, 22.7, 32.3)   # MG90S body x, y, height to flange top region, flange length
 
 # --- body styling (sections: x, half width, z bottom, z top, top radius) ---
@@ -59,8 +58,13 @@ DECK_Z = 42.0              # top of the solar deck (rear deck, flat between the 
 PANEL_X0 = 54.0            # rear edge of the panel pocket (panel centred on the flat deck 36..132)
 
 # --- layout of the inside ---
-BAY = (33.0, 111.0, 34.0)  # battery bay x0, x1, half width (4xAA holders OR 3S LiPo 75x35x25)
-PI_X0 = 113.0              # Pi 4 rear edge (long side along x)
+# drive PCB v3 (f1/pcb, 86 x 90) on 4 mm standoffs; board coordinates (bx, by) of f1/pcb/tools/design.py -> car:
+#   x = PCB_X0 + (by - BOARD_Y0), y = bx - PCB_YC   (90 mm side along the car, parts up, XT60 at the rear right)
+PCB_X0, PCB_YC, BOARD_Y0 = 38.0, 95.0, -68.0
+PCB_Z0, PCB_T = 10.0, 1.6     # underside of the board / thickness
+PCB_HOLES_B = [(55.5, 18.5), (77.0, -64.0), (55.5, -30.0), (134.5, -27.0)]   # MOUNT in f1/pcb/tools/design.py
+LIPO = (72.0, 35.0, 14.0)     # 2S 1000 mAh (72 x 35 x 14) on the tray above the PCB
+TRAY_Z = 19.6                 # underside of the battery tray (8 mm above the board: clears modules + angled servo header)
 SERVO_X = 214.0            # servo output shaft (shaft points DOWN, horn just above the floor)
 KINGPIN_Y = 64.0
 STEER_MAX_HW = 20.0         # mechanical steering limit inside the wheel arch (deg)
