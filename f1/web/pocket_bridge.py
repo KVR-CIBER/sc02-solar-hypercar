@@ -4,8 +4,10 @@ The sim (rc.js) uses this instead of the browser Gamepad API, so no browser supp
 The radio is only opened while a browser is listening, and never exclusively, so other apps (FPV.SkyDive) keep the joystick.
 Two-way: with the Pocket in "USB Serial (VCP)" (VCP port mode LUA) sc02.lua sends its channels as text lines
 "C,ch1,...,ch8" (-1024..1024) and gets the sim speed back as "S<km/h>"; the page posts that speed to /speed?v=<km/h>.
+HTTPS on :8092 when ~/.sc02/cert.pem + key.pem exist (self-signed for 127.0.0.1, trusted in the login keychain):
+Safari blocks http://127.0.0.1 from the https GitHub Pages site, so the page tries https first.
 Run: ~/Downloads/solar-olympiade/.venv/bin/python f1/web/pocket_bridge.py"""
-import ctypes, hid, json, threading, time
+import ctypes, hid, json, os, ssl, threading, time
 import serial
 from serial.tools import list_ports
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -115,5 +117,11 @@ class H(BaseHTTPRequestHandler):
 
 threading.Thread(target=reader, daemon=True).start()
 threading.Thread(target=serial_reader, daemon=True).start()
+CERT = os.path.expanduser("~/.sc02/cert.pem"), os.path.expanduser("~/.sc02/key.pem")
+if all(map(os.path.exists, CERT)):
+    tls = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER); tls.load_cert_chain(*CERT)
+    srv = ThreadingHTTPServer(("127.0.0.1", 8092), H); srv.socket = tls.wrap_socket(srv.socket, server_side=True)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    print("ook https://127.0.0.1:8092 (Safari)", flush=True)
 print("Pocket-brug op http://localhost:8091  (Ctrl+C om te stoppen)", flush=True)
 ThreadingHTTPServer(("127.0.0.1", 8091), H).serve_forever()

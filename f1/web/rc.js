@@ -16,14 +16,20 @@ let map = null;                                     // mapping of the pad in use
 // ---- bridge (pocket_bridge.py on :8091): reads the Pocket over USB or Bluetooth itself, channels already in CH1..CH8
 // order. Works without the browser Gamepad API and without learning: CH1 steer, CH3 gas, CH5 boost, CH6 reverse, CH7 limit.
 const br = { name: null, ch: null, btn: 0, t: 0, rest: null };
+// https first (Safari blocks http://127.0.0.1 from the https site), plain http as fallback (local copy, untrusted cert)
+const BRIDGES = location.protocol === "https:" ? ["https://127.0.0.1:8092", "http://127.0.0.1:8091"] : ["http://127.0.0.1:8091", "https://127.0.0.1:8092"];
+let bridgeUrl = BRIDGES[0], bridgeTry = 0;
 (function connectBridge() {
   try {
-    const es = new EventSource("http://127.0.0.1:8091/");
+    const es = new EventSource(bridgeUrl + "/");
     es.onmessage = (e) => { const d = JSON.parse(e.data);
       if (!d.name) { br.name = null; br.rest = null; return; }
       if (!br.rest) br.rest = [...d.ch];                      // switches as they are when the radio connects = 'off'
       Object.assign(br, { name: d.name, ch: d.ch, btn: d.btn, t: performance.now() }); };
-    es.onerror = () => { es.close(); br.name = null; setTimeout(connectBridge, 3000); };
+    es.onopen = () => { bridgeTry = 0; };
+    es.onerror = () => { es.close(); br.name = null;
+      if (++bridgeTry >= 2) { bridgeTry = 0; bridgeUrl = BRIDGES[(BRIDGES.indexOf(bridgeUrl) + 1) % BRIDGES.length]; }
+      setTimeout(connectBridge, 1500); };
   } catch { setTimeout(connectBridge, 3000); }
 })();
 let lastSpeedPost = 0;
@@ -72,7 +78,7 @@ export const rc = {
     const now = performance.now();
     if (!bridgeLive() || now - lastSpeedPost < 200) return;
     lastSpeedPost = now;
-    fetch("http://127.0.0.1:8091/speed?v=" + kmh, { method: "POST", mode: "no-cors" }).catch(() => { });
+    fetch(bridgeUrl + "/speed?v=" + kmh, { method: "POST", mode: "no-cors" }).catch(() => { });
   },
 };
 
@@ -113,7 +119,7 @@ export function bindRcPanel($) {
     const p = rc.pad();
     if (!p) {
       const safari = /^((?!chrome|android|crios|fxios).)*safari/i.test(navigator.userAgent);
-      msg.textContent = safari ? "Safari kan de Pocket niet lezen (USB/Bluetooth). Open deze pagina in Chrome of Edge; de Pocket-brug op je Mac doet de rest."
+      msg.textContent = safari ? "Geen Pocket gezien. Safari leest de Pocket via de Pocket-brug op je Mac: Pocket aan USB ('USB Serial (VCP)' of 'USB Joystick') of Bluetooth, beweeg een stick."
         : "Geen controller gevonden. Pocket via USB ('USB Joystick (HID)') of Bluetooth, beweeg een stick. Chrome vraagt de eerste keer toegang tot je lokale netwerk: kies Toestaan.";
       return;
     }
