@@ -164,6 +164,100 @@ for o in objs.values():                                     # auto smooth by ang
         pass
 
 
+# ---------------------------------------------------------------- real drive PCB (KiCad GLB) + a real-looking 2S LiPo
+def sub_mat(m, c):
+    b = m.node_tree.nodes.get('Principled BSDF')
+    return b if b else None
+
+
+PCB_BASE = bpy.data.objects.new('pcb_base', None); bpy.context.collection.objects.link(PCB_BASE)
+PCB_BASE.parent = ROOT; PCB_BASE.location = (106.0, -95.0, 10.0); PCB_BASE.rotation_euler = (0, 0, math.radians(90))
+PCB_MOVE = bpy.data.objects.new('pcb_move', None); bpy.context.collection.objects.link(PCB_MOVE); PCB_MOVE.parent = PCB_BASE
+PCB_GLB = bpy.data.objects.new('pcb_glb', None); bpy.context.collection.objects.link(PCB_GLB); PCB_GLB.parent = PCB_MOVE
+PCB_GLB.scale = (1000,) * 3                                  # KiCad GLB is in metres, the car in mm
+before = set(bpy.data.objects)
+bpy.ops.import_scene.gltf(filepath=os.path.join(HERE, 'assets', 'pcb_f1.glb'))
+for o in set(bpy.data.objects) - before:
+    if o.parent is None: o.parent = PCB_GLB
+    if o.type == 'MESH':
+        for m in o.data.materials:
+            b = m.node_tree.nodes.get('Principled BSDF') if m and m.use_nodes else None
+            if not b: continue
+            c = b.inputs['Base Color'].default_value
+            if abs(c[0] - 0.08) < 0.01 and abs(c[1] - 0.2) < 0.01:                 # soldermask -> matte black
+                b.inputs['Base Color'].default_value = (0.008, 0.008, 0.01, 1); b.inputs['Roughness'].default_value = 0.42
+                b.inputs['Coat Weight'].default_value = 0.35; b.inputs['Alpha'].default_value = 1.0
+            elif c[0] > 0.95 and c[1] > 0.95:                                          # silkscreen
+                b.inputs['Alpha'].default_value = 1.0; b.inputs['Roughness'].default_value = 0.6
+            elif abs(c[0] - 0.42) < 0.02 and abs(c[1] - 0.45) < 0.02:                  # FR4 edge
+                b.inputs['Base Color'].default_value = (0.08, 0.075, 0.05, 1)
+
+
+def pbox(name, size, loc, m, parent, bevel=0.0):
+    bpy.ops.mesh.primitive_cube_add(size=1); o = bpy.context.object; o.name = name
+    o.scale = size; o.location = loc; o.parent = parent; o.data.materials.append(m)
+    if bevel:
+        bv = o.modifiers.new('bv', 'BEVEL'); bv.width = bevel; bv.segments = 4
+    return o
+
+
+# parts KiCad has no 3D model for (board coordinates of f1/pcb/tools/design.py, mm, top side)
+PB = bpy.data.objects.new('pcb_extra', None); bpy.context.collection.objects.link(PB); PB.parent = PCB_MOVE
+for nm, (bx, by, sx, sy, h, m) in {'L1': (129.5, -57.5, 10.0, 10.0, 3.8, M['dark']), 'USB-C': (73.0, 18.2, 8.9, 7.3, 3.2, M['metal']),
+                                   'TPS54560': (116.5, -52.5, 4.9, 3.9, 1.7, mat('ic', (0.012, 0.012, 0.014), 0.4))}.items():
+    pbox('pcb_' + nm, (sx, sy, h), (bx, -by, 1.6 + h / 2), m, PB, bevel=0.3)
+
+# LiPo: rounded pouch in shrink wrap with a printed label, red/black leads to a yellow XT60, white balance plug
+LX, LY, LZ = 72.0, 35.0, 14.0
+L0 = Vector((38 + 5 + 1.6, 0.4 + 1.6, 19.6 + 1.6))          # tray: x0 + wall, y0 + wall, top of the tray floor
+BAT = bpy.data.objects.new('lipo_real', None); bpy.context.collection.objects.link(BAT); BAT.parent = ROOT
+wrap = mat('krimpfolie', (0.012, 0.012, 0.014), 0.18, coat=0.6, coat_rough=0.1)
+pbox('lipo_pouch', (LX, LY, LZ), (L0.x + LX / 2, L0.y + LY / 2, L0.z + LZ / 2), wrap, BAT, bevel=2.4)
+lab = mat('lipo_label', (1, 1, 1), 0.3, coat=0.8, coat_rough=0.05)
+n_, l_, b_ = nodes(lab); tx = n_.new('ShaderNodeTexImage'); tx.image = bpy.data.images.load(os.path.join(HERE, 'assets', 'lipo_label.png'))
+l_.new(tx.outputs['Color'], b_.inputs['Base Color'])
+bpy.ops.mesh.primitive_plane_add(size=1); lp_ = bpy.context.object; lp_.name = 'lipo_label'; lp_.parent = BAT
+lp_.scale = (LX - 6, LY - 5, 1); lp_.location = (L0.x + LX / 2, L0.y + LY / 2, L0.z + LZ + 0.05); lp_.data.materials.append(lab)
+
+
+def lead(name, pts, r, m, parent):
+    cu = bpy.data.curves.new(name, 'CURVE'); cu.dimensions = '3D'; cu.bevel_depth = r; cu.bevel_resolution = 4
+    sp = cu.splines.new('BEZIER'); sp.bezier_points.add(len(pts) - 1)
+    for bp, p in zip(sp.bezier_points, pts):
+        bp.co = p; bp.handle_left_type = bp.handle_right_type = 'AUTO'
+    o = bpy.data.objects.new(name, cu); bpy.context.collection.objects.link(o); o.parent = parent; cu.materials.append(m)
+    return o
+
+
+red, blk, wht = mat('draad_rood', (0.5, 0.01, 0.01), 0.35, coat=0.3), mat('draad_zwart', (0.01, 0.01, 0.012), 0.35, coat=0.3), mat('xh', (0.85, 0.84, 0.8), 0.45)
+xt = (43.0, -36.5, 11.6 + 16.0 + 4.0)                     # female XT60 on top of the board's male XT60
+for k, (m, dy) in enumerate(((red, 2.2), (blk, -2.2))):
+    lead('lipo_lead_' + str(k), [(L0.x + 1, L0.y + 9 + dy, L0.z + 6), (L0.x - 8, L0.y + 4 + dy, L0.z + 12), (xt[0] + 2, -18 + dy, xt[2] + 6),
+                                 (xt[0], xt[1] + 8 + dy * 0.5, xt[2] + 4)], 1.05, m, BAT)
+pbox('xt60_female', (16.0, 8.2, 8.0), xt, M['xt60'], BAT, bevel=0.8)
+for k, m in enumerate((red, blk, blk)):
+    lead('lipo_bal_' + str(k), [(L0.x + 1, L0.y + 26 + k * 1.3, L0.z + 4), (L0.x - 6, L0.y + 28 + k * 1.3, L0.z + 10),
+                                (L0.x + 14, L0.y + 26 + k * 1.3, L0.z + LZ + 3), (L0.x + 26, L0.y + 24 + k * 1.3, L0.z + LZ + 1.6)], 0.45, m, BAT)
+pbox('lipo_balance_plug', (6.0, 9.9, 4.8), (L0.x + 30, L0.y + 25.3, L0.z + LZ + 2.5), wht, BAT, bevel=0.3)
+for o in [objs.get('battery')] + [objs[k] for k in objs if k == 'pcb' or k.startswith('pcb_') and k != 'pcb_posts']:
+    if o: o.scale = (0, 0, 0)                              # replaced by the real models above
+FOLLOW = {'pcb': [PCB_MOVE], 'battery': [BAT]}
+
+
+def follow_anim():
+    """the real PCB / LiPo copy the motion of the simple CAD part they replace (same action), shown from the same frame"""
+    for src, dsts in FOLLOW.items():
+        o = objs.get(src)
+        if not (o and o.animation_data and o.animation_data.action): continue
+        for d in dsts:
+            d.animation_data_create(); d.animation_data.action = o.animation_data.action
+            for ch in d.children_recursive:
+                ch.animation_data_create(); ch.animation_data.action = None
+                ch.hide_render = True; ch.keyframe_insert('hide_render', frame=1)
+                fa = next(kp.co[0] for fc in o.animation_data.action.fcurves if fc.data_path == 'hide_render' for kp in fc.keyframe_points if kp.co[1] == 0)
+                ch.hide_render = False; ch.keyframe_insert('hide_render', frame=int(fa))
+
+
 def ease(t):
     t = max(0.0, min(1.0, t)); return 1 - (1 - t) ** 3
 
@@ -188,6 +282,7 @@ if MODE in ('anim', 'test'):
             for k in range(0, 13):
                 o.location = dv * dist * (1 - ease(k / 12)); o.keyframe_insert('location', frame=int(round(a + (b - a) * k / 12)))
     json.dump(dict(fps=FPS, n=N, steps=[[a, b, c] for (a, b), (c, _, _, _) in zip(SF, STEPS)]), open(os.path.join(HERE, 'captions_pro.json'), 'w'))
+    follow_anim()
 
 # ---------------------------------------------------------------- showroom: dark glossy floor, strip softboxes, rim lights
 TGT = bpy.data.objects.new('tgt', None); bpy.context.collection.objects.link(TGT); TGT.location = (CX, 0, 0.03)
@@ -281,6 +376,7 @@ elif MODE == 'beauty':
     if len(args) > 1:                                       # quick look: first shot at 25 %
         SHOTS = SHOTS[:1]; sc.render.resolution_percentage = 25; sc.cycles.samples = 64
     for name, ang, r, h, tz, tx in SHOTS:
+        if len(args) == 1 and os.path.exists(os.path.join(out, name + '.png')): continue     # exterior shots already done
         p, tg = polar(ang, r, h, tz, tx); CAM.location = p; TGT.location = tg
         shoot(os.path.join(out, name + '.png'))
     if len(args) > 1:
@@ -301,6 +397,8 @@ elif MODE == 'beauty':
         for n in names:
             o = objs.get(n)
             if o: o.location = dirvec(o, d) * dist * 0.55
+            for fo in FOLLOW.get(n, []):
+                fo.location = dirvec(o, d) * dist * 0.55 if fo is BAT else Vector((0, 0, dist * 0.55))
     p, tg = polar(-40, 2.0, 0.85, 0.06, CX); CAM.location = p; TGT.location = tg; cd.dof.aperture_fstop = 11
     shoot(os.path.join(out, '10_explosie.png'))
 
@@ -402,7 +500,7 @@ elif MODE == 'explain':
          [("Paneel", (84, 0, 43), "Zonnepaneel", "5 V, 110 x 60 mm")]),
         ("Aerodynamica", "Carbon-look vleugel door sleuven in de carrosserie", (-33, 0, 45), 155, 0.6, 0.22, True,
          [("Vleugel", (-33, 40, 52), "Achtervleugel", "NACA 6412, twee elementen")]),
-        ("Klaar om te racen", "Kobe Van Robaeys · SC-02", (140, 0, 30), 20, 1.3, 0.16, True, []),
+        ("Klaar om te racen", "Kobe Vanrobaeys · SC-02", (140, 0, 30), 20, 1.3, 0.16, True, []),
     ]
     HOLD, MOVE = 110, 30
     NE = len(SH) * (HOLD + MOVE); sc.frame_start, sc.frame_end, sc.render.fps = 1, NE, FPS

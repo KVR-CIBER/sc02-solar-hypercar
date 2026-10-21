@@ -195,7 +195,7 @@ def build():
     doc = [S('kicad_sch'), [S('version'), 20250114], [S('generator'), 'eeschema'], [S('generator_version'), '9.0'],
            [S('uuid'), ROOT_UUID], [S('paper'), 'A1'],
            [S('title_block'), [S('title'), 'SC-02 floor board'], [S('date'), '2026-10-18'], [S('rev'), '2.0'],
-            [S('company'), 'Kobe Van Robaeys'], [S('comment'), 1, 'drive board v3: ESP32-S3 + ESC output + ELRS + INA226 + buck']],
+            [S('company'), 'Kobe Vanrobaeys'], [S('comment'), 1, 'drive board v3: ESP32-S3 + ESC output + ELRS + INA226 + buck']],
            lib_symbols] + items + [[S('sheet_instances'), [S('path'), '/', [S('page'), '1']]], [S('embedded_fonts'), S('no')]]
     open(os.path.join(PRJ, NAME + '.kicad_sch'), 'w').write(dump(doc) + '\n')
     print('schematic written: %d blocks' % len(blocks))

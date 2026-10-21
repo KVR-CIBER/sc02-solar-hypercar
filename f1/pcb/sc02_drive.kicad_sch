@@ -8,7 +8,7 @@
 		(title "SC-02 floor board")
 		(date "2026-10-18")
 		(rev "2.0")
-		(company "Kobe Van Robaeys")
+		(company "Kobe Vanrobaeys")
 		(comment 1 "drive board v3: ESP32-S3 + ESC output + ELRS + INA226 + buck")
 	)
 	(lib_symbols

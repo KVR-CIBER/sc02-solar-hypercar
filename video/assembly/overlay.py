@@ -35,7 +35,7 @@ def frame(f):
     if f >= end0:
         a = min(1, (f - end0) / 20)
         shadow_text(lay, (W / 2, H - 420), 'SC-02', TITLE, WHITE, a, 'mm')
-        shadow_text(lay, (W / 2, H - 270), 'Solar Hypercar · Kobe Van Robaeys', SUB, GREY, a, 'mm')
+        shadow_text(lay, (W / 2, H - 270), 'Solar Hypercar · Kobe Vanrobaeys', SUB, GREY, a, 'mm')
     return Image.alpha_composite(im, lay).convert('RGB')
 
 

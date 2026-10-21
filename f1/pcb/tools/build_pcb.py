@@ -415,7 +415,7 @@ def back_art(board):
     B = pcbnew.B_SilkS
     text(board, B, 'SC-02', (95.0, -46.0), size=7.0, th=1.0, mirror=True, bold=True)
     text(board, B, 'SOLAR HYPERCAR  ·  DRIVE v3', (95.0, -39.0), size=1.8, th=0.3, mirror=True, bold=True)
-    text(board, B, 'Kobe Van Robaeys  ·  2026', (95.0, -35.5), size=1.2, th=0.2, mirror=True)
+    text(board, B, 'Kobe Vanrobaeys  ·  2026', (95.0, -35.5), size=1.2, th=0.2, mirror=True)
 
 
 def spider(board, layer, c, s):
