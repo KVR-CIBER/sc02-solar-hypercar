@@ -452,33 +452,59 @@ elif MODE == 'steer':
             if o: attach(o, spin['R' + side])
     horn = pivot('horn', (SX, 0, 0)); bpy.context.view_layer.update()
     if objs.get('steering_horn'): attach(objs['steering_horn'], horn)
-    rods = [objs.get('tie_rod_L'), objs.get('tie_rod_R')]
-    # body and wing off so the mechanism is visible; floor, modules, servo stay
+    # tie rods: inner end rides on the horn, outer end on the upright's steering arm (pivot empties at the inner ends)
+    TIN, ARM = 9.0, (WB - 10.5, KP - 6.0)                   # horn ball joint (x = SX, y = +-9), arm end (car mm, left side)
+    rodpiv = {}
+    for side, s_ in (('L', 1), ('R', -1)):
+        r = objs.get('tie_rod_' + side)
+        if r:
+            rp = pivot('rodpiv_' + side, (SX, s_ * TIN, 0)); bpy.context.view_layer.update(); attach(r, rp); rodpiv[side] = rp
+
+    def rot2(px, py, cx, cy, ang):
+        c, s2 = math.cos(ang), math.sin(ang); dx, dy = px - cx, py - cy
+        return cx + c * dx - s2 * dy, cy + s2 * dx + c * dy
+    for side in 'LR':
+        for nm in ('body', 'canopy', 'panel', 'rear_wing'):
+            pass
     for nm in ('body', 'canopy', 'panel', 'rear_wing'):
         if objs.get(nm): objs[nm].hide_render = True
+    ANG = []
     for f in range(1, NFR + 1):
         t = (f - 1) / FPS
-        a = math.radians(20) * math.sin(2 * math.pi * t / 3.3) * min(1, t / 0.8)
-        roll = -t * 2 * math.pi * 0.9                       # ~0.9 wheel turns per second
+        a = math.radians(22) * math.sin(2 * math.pi * t / 4.0) * min(1, t / 0.6)
+        ANG.append(math.degrees(a))
+        roll = -t * 2 * math.pi * 0.9
         for side in 'LR':
             steer[side].rotation_euler = (0, 0, a); steer[side].keyframe_insert('rotation_euler', frame=f)
         for key, e in spin.items():
             e.rotation_euler = (0, roll, 0); e.keyframe_insert('rotation_euler', frame=f)
-        horn.rotation_euler = (0, 0, a * 1.15); horn.keyframe_insert('rotation_euler', frame=f)
-        for r in rods:
-            if r:
-                r.location = (0, 9.0 * math.sin(a * 1.15) / 0.001 * 0.001, 0); r.keyframe_insert('location', frame=f)
-    for fc in [fc for o in list(steer.values()) + list(spin.values()) + [horn] + [r for r in rods if r] for fc in o.animation_data.action.fcurves]:
-        for kp in fc.keyframe_points: kp.interpolation = 'LINEAR'
-    # camera: high front three-quarter, slowly drifting
-    for f in (1, NFR):
-        u = (f - 1) / (NFR - 1)
-        p, tg = polar(-25 + 40 * u, 0.62, 0.38 - 0.08 * u, tz=0.015, tx=0.215); CAM.location = p; TGT.location = tg
-        CAM.keyframe_insert('location', frame=f); TGT.keyframe_insert('location', frame=f)
+        h = a * 1.25
+        horn.rotation_euler = (0, 0, h); horn.keyframe_insert('rotation_euler', frame=f)
+        for side, s_ in (('L', 1), ('R', -1)):
+            if side not in rodpiv: continue
+            ix, iy = rot2(SX, s_ * TIN, SX, 0, h)                                  # inner end on the horn
+            ox, oy = rot2(ARM[0], s_ * ARM[1], WB, s_ * KP, a)                     # outer end on the upright arm
+            a0 = math.atan2(s_ * ARM[1] - s_ * TIN, ARM[0] - SX); a1 = math.atan2(oy - iy, ox - ix)
+            rp = rodpiv[side]; rp.location = (ix, iy, 0); rp.rotation_euler = (0, 0, a1 - a0)
+            rp.keyframe_insert('location', frame=f); rp.keyframe_insert('rotation_euler', frame=f)
+    json.dump(ANG, open(os.path.join(HERE, 'steer_angles.json'), 'w'))
+    for o in list(steer.values()) + list(spin.values()) + [horn] + list(rodpiv.values()):
+        for fc in o.animation_data.action.fcurves:
+            for kp in fc.keyframe_points: kp.interpolation = 'LINEAR'
+    # camera: low and straight in front of the nose, then up and round to a high three-quarter view
+    for f in range(1, NFR + 1, 3):
+        u = (f - 1) / (NFR - 1); u = u * u * (3 - 2 * u)
+        p, tg = polar(0 - 50 * u, 0.62 + 0.2 * u, 0.07 + 0.38 * u, tz=0.018, tx=0.20 - 0.04 * u)
+        CAM.location = p; TGT.location = tg; CAM.keyframe_insert('location', frame=f); TGT.keyframe_insert('location', frame=f)
+    cd.lens = 70
     cd.dof.aperture_fstop = 8
     sc.render.filepath = os.path.join(HERE, 'steer', '')
     if len(args) > 1:
-        sc.render.resolution_percentage = 25; shoot(os.path.join(HERE, f'test_steer_{int(args[1]):04d}.png'), int(args[1]))
+        sc.render.resolution_percentage = 25
+        if args[-1] == 'top':                                # debug: straight down on the front axle
+            CAM.animation_data_clear(); TGT.animation_data_clear(); TGT.location = (0.23, 0, 0.02); CAM.location = (0.2301, 0, 0.9)
+        for f in [int(a) for a in args[1:] if a.isdigit()]:
+            shoot(os.path.join(HERE, f'test_steer_{f:04d}.png'), f)
     else:
         bpy.ops.render.render(animation=True)
 
