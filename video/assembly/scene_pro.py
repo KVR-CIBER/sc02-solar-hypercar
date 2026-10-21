@@ -373,13 +373,15 @@ elif MODE == 'beauty':
              ('03_zijkant', -90, 1.7, 0.06, 0.03, CX), ('04_laag_neus', -12, 0.95, 0.05, 0.025, CX + 0.12),
              ('05_boven', -60, 0.9, 1.25, 0.0, CX), ('06_achtervleugel', 160, 0.75, 0.12, 0.05, CX - 0.12),
              ('07_wiel_voor', -70, 0.55, 0.06, 0.02, CX + 0.12), ('08_zonnepaneel', 200, 0.95, 0.65, 0.04, CX)]
-    if len(args) > 1:                                       # quick look: first shot at 25 %
+    if len(args) > 1 and args[1] == 'explode':              # only the exploded view again
+        SHOTS = []
+    elif len(args) > 1:                                     # quick look: first shot at 25 %
         SHOTS = SHOTS[:1]; sc.render.resolution_percentage = 25; sc.cycles.samples = 64
     for name, ang, r, h, tz, tx in SHOTS:
         if len(args) == 1 and os.path.exists(os.path.join(out, name + '.png')): continue     # exterior shots already done
         p, tg = polar(ang, r, h, tz, tx); CAM.location = p; TGT.location = tg
         shoot(os.path.join(out, name + '.png'))
-    if len(args) > 1:
+    if len(args) > 1 and args[1] != 'explode':
         sys.exit(0)
     # x-ray: body + canopy + panel see-through glass, the electronics visible
     for nm in ('body', 'canopy', 'panel'):
@@ -389,7 +391,8 @@ elif MODE == 'beauty':
             g.node_tree.nodes['Principled BSDF'].inputs['Alpha'].default_value = 0.25
             o.data.materials.clear(); o.data.materials.append(g)
     p, tg = polar(-50, 1.1, 0.5, 0.03, CX + 0.02); CAM.location = p; TGT.location = tg
-    shoot(os.path.join(out, '09_rontgen.png'))
+    if not (len(args) > 1 and args[1] == 'explode'):
+        shoot(os.path.join(out, '09_rontgen.png'))
     for nm in ('body', 'canopy', 'panel'):
         if objs.get(nm): objs[nm].data.materials.clear(); objs[nm].data.materials.append(pick(nm))
     # exploded view: every part pulled out along its assembly path
@@ -399,7 +402,8 @@ elif MODE == 'beauty':
             if o: o.location = dirvec(o, d) * dist * 0.55
             for fo in FOLLOW.get(n, []):
                 fo.location = dirvec(o, d) * dist * 0.55 if fo is BAT else Vector((0, 0, dist * 0.55))
-    p, tg = polar(-40, 2.0, 0.85, 0.06, CX); CAM.location = p; TGT.location = tg; cd.dof.aperture_fstop = 11
+    ROOT.location = (0, 0, 0.095)                          # lift the car: parts that leave downward stay above the floor
+    p, tg = polar(-38, 2.35, 0.9, 0.15, CX); CAM.location = p; TGT.location = tg; cd.dof.aperture_fstop = 13
     shoot(os.path.join(out, '10_explosie.png'))
 
 elif MODE == 'turntable':
