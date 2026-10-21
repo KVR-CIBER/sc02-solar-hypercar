@@ -106,7 +106,7 @@ def motor_clamp():
     return c.cut(box(CD - 3, CD + 3, y0 - 1, y1 + 1, AXLE_RZ + MOT_R, AXLE_RZ + MOT_R + 3))                 # cooling window on top
 
 # ------------------------------------------------------------------ rear bearing blocks (inside the body, hidden)
-RB_Y = (53.0, 58.0)
+RB_Y = (52.0, 58.0)                       # 6 mm wide: floor screws at y = 55 keep 2.4 mm acrylic to the wheel notch
 def rear_bearing_block(left=True):
     y0, y1 = RB_Y
     u = rbox(-9, 9, y0, y1, FLOOR_TOP, AXLE_RZ + 7, 2.5)
@@ -409,19 +409,21 @@ def diffuser():
                           .extrude(50, both=True))
     side = U(*[box(x1, x0, y - 0.6, y + 0.6, FLOOR_Z, 20) for y in (-hw + 0.6, hw - 0.6)])
     tabs = U(box(x0, x0 + 4.4, -12, 12, FLOOR_TOP, FLOOR_TOP + 2.2), *[box(x0, x0 + 4.4, min(s * 25, s * 36), max(s * 25, s * 36), FLOOR_TOP, FLOOR_TOP + 2.2) for s in (1, -1)],
+             *[box(x0, x0 + 7.0, min(s * 31, s * 37), max(s * 31, s * 37), FLOOR_TOP, FLOOR_TOP + 2.2) for s in (1, -1)],   # screw ears, clear of the rear module (|y| < 30.5)
              )
     out = U(ramp, strakes, side, tabs, box(x0 - 1.0, x0, -hw, hw, FLOOR_Z, FLOOR_TOP + 2.2))
-    for y in (-30.5, 0, 30.5):
-        out = floor_screw(x0 + 2.2, y, part=out, depth=2.2, d=2.6, pilot=2.0)
+    for y in (-34, 34):                        # no centre screw: the rear module sits right behind the floor end there
+        out = floor_screw(x0 + 4.5, y, part=out, depth=2.2, d=2.6, pilot=2.0)      # 3.2 mm acrylic to the floor end
     return out
 
 # ------------------------------------------------------------------ inside: trays + body clips
 BODY_CLIPS = [(48, 58, 63), (140, 57, 63), (-40, 40, 52), (186, 55, 61)]   # (x, y_in, y_out) per side
 CLIP_Z = 14.0
 def body_clip(x, yi, yo, s):
-    c = rbox(x - 4, x + 4, min(s * yi, s * yo), max(s * yi, s * yo), FLOOR_TOP, CLIP_Z, 1)
+    dx = max(0.0, DIFF_X0 + 5.0 - x)          # clip at the floor end: screw 5 mm in from the edge, magnet (body boss) stays put
+    c = rbox(x - 4, x + 4 + dx, min(s * yi, s * yo), max(s * yi, s * yo), FLOOR_TOP, CLIP_Z, 1)
     c = c.cut(cyl_z(3.1, x, s * (yi + yo) / 2, CLIP_Z - 3.1, CLIP_Z + 1))      # 6x3 magnet
-    return floor_screw(x, s * (yi + yo) / 2, part=c, depth=4)
+    return floor_screw(x + dx, s * (yi + yo) / 2, part=c, depth=4)
 
 def pcb_xy(bx, by):
     """f1/pcb design coordinates -> car coordinates"""

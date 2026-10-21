@@ -6,11 +6,11 @@
   "front_module": 8.7,
   "splitter": 14.9,
   "rear_wing": 17.9,
-  "diffuser": 7.9,
+  "diffuser": 8.0,
   "pcb_posts": 0.4,
   "battery_tray": 4.7,
   "esc_tray": 1.5,
-  "uprights+clips+small": 15.8,
+  "uprights+clips+small": 17.5,
   "floor (2 mm acrylic)": 107.9,
   "4 rims (PLA)": 28.3,
   "4 tyres (PU/silicone)": 48.3,
@@ -22,8 +22,8 @@
   "LiPo 2S 1000 mAh": 62,
   "wires, screws, bearings, axles, magnets": 28
  },
- "total_g": 656.6,
+ "total_g": 658.4,
  "length": 379.0,
  "width": 170.0,
- "floor_holes": 33
+ "floor_holes": 32
 }
