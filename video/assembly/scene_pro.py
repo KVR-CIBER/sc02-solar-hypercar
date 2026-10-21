@@ -379,3 +379,64 @@ elif MODE == 'steer':
         sc.render.resolution_percentage = 25; shoot(os.path.join(HERE, f'test_steer_{int(args[1]):04d}.png'), int(args[1]))
     else:
         bpy.ops.render.render(animation=True)
+
+elif MODE == 'explain':
+    # explainer: the camera flies from part to part, labels + explanation are drawn by overlay_explain.py
+    from bpy_extras.object_utils import world_to_camera_view
+    mm = lambda x, y, z: Vector((x / 1000, y / 1000, z / 1000))
+    SH = [  # title, subtitle, target mm, cam angle, radius m, height m, body visible, labels [(name, anchor mm, text, sub)]
+        ("SC-02 Solar Hypercar", "3D-geprint · brushless · ESP32-S3 + ExpressLRS", (140, 0, 30), -35, 1.25, 0.2, True, []),
+        ("Onder de carrosserie", "Alles op een zwarte plexi vloer van 2 mm", (140, 0, 20), -60, 1.1, 0.55, False, []),
+        ("Aandrijving", "Brushless 2435 · 4500 kV, sim: ~80 km/u, boost ~120", (12, 12, 22), -40, 0.42, 0.22, False,
+         [("Motor 2435", (18.5, 16, 34), "Brushless 2435", "4500 kV, op een motorplaat"), ("Tandwiel", (0, -8, 37), "35T + 11T", "module 0.8, 3,18 : 1")]),
+        ("Snelheidsregelaar", "ESC naast de motor: korte motordraden", (19, -37, 16), -110, 0.42, 0.25, False,
+         [("ESC", (19, -37, 23), "ESC 35 A", "signaal van de ESP32-S3")]),
+        ("Het brein", "Stuurprint v3 op afstandsbussen", (95, 5, 14), -150, 0.5, 0.33, False,
+         [("ESP32-S3", (115, -2, 15), "ESP32-S3", "rijlogica, boost, limiet"), ("ELRS", (118, 25, 15), "ExpressLRS", "ESP32-C3 + E28, 2,4 GHz"),
+          ("XT60", (43, -36, 27), "XT60", "batterij + zonnepaneel in")]),
+        ("Batterij", "2S LiPo 1000 mAh op een bakje boven de print", (80, 19, 28), 140, 0.55, 0.35, False,
+         [("LiPo", (80, 19, 35), "LiPo 2S", "1000 mAh, 7,4 V")]),
+        ("Sturen", "MG90S-servo, stuurhoorn en stuurstangen", (220, 0, 15), -20, 0.45, 0.3, False,
+         [("Servo", (214, 0, 31), "Servo MG90S", "±20° stuurhoek"), ("Fusee", (230, 64, 26), "Fusee", "draait om de fuseepen")]),
+        ("Zonnepaneel", "1 W paneel laadt de batterij bij", (84, 0, 42), 160, 0.75, 0.55, True,
+         [("Paneel", (84, 0, 43), "Zonnepaneel", "5 V, 110 x 60 mm")]),
+        ("Aerodynamica", "Carbon-look vleugel door sleuven in de carrosserie", (-33, 0, 45), 155, 0.6, 0.22, True,
+         [("Vleugel", (-33, 40, 52), "Achtervleugel", "NACA 6412, twee elementen")]),
+        ("Klaar om te racen", "Kobe Van Robaeys · SC-02", (140, 0, 30), 20, 1.3, 0.16, True, []),
+    ]
+    HOLD, MOVE = 110, 30
+    NE = len(SH) * (HOLD + MOVE); sc.frame_start, sc.frame_end, sc.render.fps = 1, NE, FPS
+    sc.render.use_motion_blur = True; sc.render.motion_blur_shutter = 0.3
+    body_objs = [objs[n] for n in ('body', 'canopy', 'panel', 'rear_wing', 'splitter', 'diffuser') if n in objs]
+    ANCH = {}
+    meta = []
+    for i, (t, sub, tg, ang, r, h, vis, labels) in enumerate(SH):
+        f0 = 1 + i * (HOLD + MOVE); f1 = f0 + MOVE; f2 = f0 + MOVE + HOLD - 1
+        p, _ = polar(ang, r, h, tz=tg[2] / 1000, tx=tg[0] / 1000)
+        p = (p[0], p[1] + tg[1] / 1000, p[2])
+        for f, ang2 in ((f1, ang), (f2, ang + 12)):
+            q, _ = polar(ang2, r * (1 if f == f1 else 0.93), h, tz=tg[2] / 1000, tx=tg[0] / 1000)
+            CAM.location = (q[0], q[1] + tg[1] / 1000, q[2]); CAM.keyframe_insert('location', frame=f)
+            TGT.location = mm(*tg); TGT.keyframe_insert('location', frame=f)
+        for o in body_objs:
+            o.hide_render = not vis
+            o.keyframe_insert('hide_render', frame=f0 + MOVE // 2)
+        meta.append(dict(f0=f1, f1=f2, title=t, sub=sub, labels=[[nm, txt, s2] for nm, _, txt, s2 in labels]))
+        for nm, a, _, _ in labels:
+            e = bpy.data.objects.new('a_' + nm, None); bpy.context.collection.objects.link(e); e.location = mm(*a); ANCH[nm] = e
+    for fc in [fc for o in (CAM, TGT) for fc in o.animation_data.action.fcurves]:
+        for kp in fc.keyframe_points: kp.interpolation = 'BEZIER'; kp.easing = 'EASE_IN_OUT'
+    cd.dof.aperture_fstop = 5.6
+    pos = {}
+    for f in range(1, NE + 1):
+        sc.frame_set(f); row = {}
+        for nm, e in ANCH.items():
+            v = world_to_camera_view(sc, CAM, e.matrix_world.translation); row[nm] = [round(v.x, 4), round(1 - v.y, 4), round(v.z, 4)]
+        pos[f] = row
+    json.dump(dict(n=NE, shots=meta, pos=pos), open(os.path.join(HERE, 'explain.json'), 'w'))
+    sc.render.filepath = os.path.join(HERE, 'frames_explain', '')
+    if len(args) > 1:
+        sc.render.resolution_percentage = 25
+        for f in [int(a) for a in args[1:]]: shoot(os.path.join(HERE, f'test_explain_{f:04d}.png'), f)
+    else:
+        bpy.ops.render.render(animation=True)
