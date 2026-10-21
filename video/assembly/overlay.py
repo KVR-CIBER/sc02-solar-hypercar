@@ -3,7 +3,9 @@ import os, json
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-C = json.load(open(os.path.join(HERE, 'captions.json')))
+import sys
+CJ, SRC, DST = (sys.argv[1:4] + ['captions.json', 'frames', 'final'][len(sys.argv[1:4]):])
+C = json.load(open(os.path.join(HERE, CJ)))
 F = lambda w, s: ImageFont.truetype(os.path.join(HERE, 'fonts', f'Inter-{w}.ttf'), s)
 NUM, CAP, TITLE, SUB = F('Light', 60), F('SemiBold', 96), F('Bold', 190), F('Medium', 62)
 WHITE, GREY, RED = (245, 247, 250), (190, 196, 206), (230, 40, 50)
@@ -17,7 +19,7 @@ def shadow_text(lay, xy, s, font, fill, a, anchor='la'):
 
 
 def frame(f):
-    im = Image.open(os.path.join(HERE, 'frames', f'{f:04d}.png')).convert('RGBA'); W, H = im.size
+    im = Image.open(os.path.join(HERE, SRC, f'{f:04d}.png')).convert('RGBA'); W, H = im.size
     lay = Image.new('RGBA', im.size, (0, 0, 0, 0)); d = ImageDraw.Draw(lay)
     if f < C['steps'][0][0] + 20:                                            # title
         a = min(1, f / 12, (C['steps'][0][0] + 20 - f) / 12)
@@ -38,7 +40,7 @@ def frame(f):
 
 
 if __name__ == '__main__':
-    os.makedirs(os.path.join(HERE, 'final'), exist_ok=True)
+    os.makedirs(os.path.join(HERE, DST), exist_ok=True)
     for f in range(1, C['n'] + 1):
-        frame(f).save(os.path.join(HERE, 'final', f'{f:04d}.png'), compress_level=1)
+        frame(f).save(os.path.join(HERE, DST, f'{f:04d}.png'), compress_level=1)
     print('overlay done')
