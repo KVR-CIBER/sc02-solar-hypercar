@@ -51,7 +51,8 @@ pr = bpy.context.preferences.addons['cycles'].preferences; pr.compute_device_typ
 for d in pr.devices:
     d.use = d.type == 'OPTIX'
 sc.cycles.device = 'GPU'
-sc.cycles.samples = 96; sc.cycles.use_adaptive_sampling = True; sc.cycles.adaptive_threshold = 0.025
+sc.cycles.samples = 40; sc.cycles.use_adaptive_sampling = True; sc.cycles.adaptive_threshold = 0.04
+sc.render.use_overwrite = False; sc.render.use_placeholder = True   # resume: frames already on disk are skipped
 sc.cycles.use_denoising = True; sc.cycles.denoiser = 'OPTIX'
 sc.cycles.max_bounces = 10; sc.cycles.glossy_bounces = 6; sc.cycles.transmission_bounces = 8
 sc.cycles.sample_clamp_indirect = 8.0
