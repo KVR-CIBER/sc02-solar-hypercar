@@ -622,3 +622,113 @@ elif MODE == 'explain':
         for f in [int(a) for a in args[1:]]: shoot(os.path.join(HERE, f'test_explain_{f:04d}.png'), f)
     else:
         bpy.ops.render.render(animation=True)
+
+elif MODE == 'drive':
+    # the car drives a figure-eight through the showroom: wheels roll, fronts steer from the path curvature, spur +
+    # pinion + motor shaft spin, second half in x-ray so the drivetrain is visible.  Speed/RPM go to drive.json.
+    WB, KP, AFZ, ARZ, CDX, RR, RF = 230.0, 64.0, 21.0, 22.0, 18.48, 22.0, 21.0
+    NF = 390; sc.frame_start, sc.frame_end, sc.render.fps = 1, NF, FPS
+    sc.render.use_motion_blur = True; sc.render.motion_blur_shutter = 0.4
+    bpy.context.view_layer.update()
+
+    def pivot(name, loc, parent=ROOT):
+        e = bpy.data.objects.new(name, None); bpy.context.collection.objects.link(e); e.parent = parent; e.location = loc
+        e.rotation_mode = 'XYZ'; return e
+
+    def attach(o, e):
+        bpy.context.view_layer.update(); mw = o.matrix_world.copy(); o.parent = e
+        o.matrix_parent_inverse = e.matrix_world.inverted() @ ROOT.matrix_world; o.matrix_world = mw
+
+    def centre(n):
+        o = objs[n]; pts = [o.matrix_world @ Vector(c) for c in o.bound_box]
+        return [sum(p[i] for p in pts) / 8 * 1000 for i in range(3)]
+    rear = pivot('rear_axle', (0, 0, ARZ))
+    for n in ('rim_RL', 'tyre_RL', 'rim_RR', 'tyre_RR', 'spur', 'axle_rear'):
+        if objs.get(n): attach(objs[n], rear)
+    steer, spinF = {}, {}
+    for side, s_ in (('L', 1), ('R', -1)):
+        k = pivot('kingpin_' + side, (WB, s_ * KP, 0)); fc = centre('tyre_F' + side)
+        sp = pivot('spinF_' + side, (fc[0] - WB, fc[1] - s_ * KP, fc[2]), k); steer[side] = k; spinF[side] = sp
+        for n in ('rim_F' + side, 'tyre_F' + side): attach(objs[n], sp)
+        if objs.get('front_upright_' + side): attach(objs['front_upright_' + side], k)
+        L = abs(fc[1]) - KP + 2.0
+        bpy.ops.mesh.primitive_cylinder_add(radius=1.6, depth=L, vertices=24); ax = bpy.context.object
+        ax.data.materials.append(M['metal']); ax.parent = k; ax.rotation_euler = (math.radians(90), 0, 0); ax.location = (fc[0] - WB, s_ * (L / 2 - 1.0), fc[2])
+    mot = pivot('motor_shaft', (CDX, 0, ARZ))
+    for n in ('pinion_F', 'motor_F_shaft'):
+        if objs.get(n): attach(objs[n], mot)
+    # x-ray copies of the body shell (glass), switched on half way
+    XR = 195
+    glass = mat('xray', (0.55, 0.7, 0.95), 0.15, coat=0.6, coat_rough=0.05)            # clean see-through shell (no refraction noise)
+    glass.node_tree.nodes['Principled BSDF'].inputs['Alpha'].default_value = 0.14
+    for nm in ('body', 'canopy', 'panel', 'rear_wing'):
+        o = objs.get(nm)
+        if not o: continue
+        g = o.copy(); bpy.context.collection.objects.link(g); g.material_slots[0].link = 'OBJECT'; g.material_slots[0].material = glass
+        for ob, on in ((o, True), (g, False)):
+            ob.hide_render = not on; ob.keyframe_insert('hide_render', frame=1)
+            ob.hide_render = on; ob.keyframe_insert('hide_render', frame=XR)
+    # path: figure eight, arc-length driven with a speed profile (accelerate, cruise, slow for the x-ray part)
+    A, Bp = 1.45, 0.75
+    def P_(u): return Vector((A * math.sin(u), Bp * math.sin(2 * u), 0))
+    us = [i / 4000 * 2 * math.pi for i in range(4001)]; pts = [P_(u) for u in us]
+    cum = [0.0]
+    for a_, b_ in zip(pts, pts[1:]): cum.append(cum[-1] + (b_ - a_).length)
+    def u_at(sdist):
+        sdist %= cum[-1]; lo, hi = 0, len(cum) - 1
+        while hi - lo > 1:
+            m = (lo + hi) // 2
+            if cum[m] < sdist: lo = m
+            else: hi = m
+        return us[lo]
+    dist = 0.0; prev_h = None; info = []; roll_r = roll_f = shaft = 0.0; hz = 0.0
+    for f in range(1, NF + 1):
+        t = (f - 1) / FPS
+        v = 1.6 * min(1, t / 1.5) if f < XR else 1.6 - 0.9 * min(1, (f - XR) / 40)        # m/s (5.8 km/h in this room)
+        dist += v / FPS; u = u_at(dist); p = P_(u); d = (P_(u + 1e-3) - P_(u - 1e-3)).normalized()
+        h = math.atan2(d.y, d.x)
+        if prev_h is not None:
+            dh = (h - prev_h + math.pi) % (2 * math.pi) - math.pi; hz += dh
+        else:
+            hz = h
+        prev_h = h
+        ds = v / FPS
+        kappa = ((h - (prev_h if False else h)) if False else 0)
+        # curvature from three nearby points
+        p1, p2 = P_(u - 4e-3), P_(u + 4e-3); d1 = (p - p1).normalized(); d2 = (p2 - p).normalized()
+        ang = math.atan2(d1.x * d2.y - d1.y * d2.x, d1.dot(d2)); kap = ang / max(1e-6, ((p - p1).length + (p2 - p).length) / 2)
+        steer_a = math.atan(WB / 1000 * kap)
+        # the car origin is the rear axle: place it so the axle follows the path, nose along the tangent
+        ROOT.location = (p.x, p.y, 0); ROOT.rotation_euler = (0, 0, hz); ROOT.keyframe_insert('location', frame=f); ROOT.keyframe_insert('rotation_euler', frame=f)
+        roll_r += ds / (RR / 1000); roll_f += ds / (RF / 1000); shaft += ds / (RR / 1000) * 35 / 11
+        rear.rotation_euler = (0, roll_r, 0); rear.keyframe_insert('rotation_euler', frame=f)
+        mot.rotation_euler = (0, -shaft, 0); mot.keyframe_insert('rotation_euler', frame=f)
+        for side in 'LR':
+            steer[side].rotation_euler = (0, 0, steer_a); steer[side].keyframe_insert('rotation_euler', frame=f)
+            spinF[side].rotation_euler = (0, roll_f, 0); spinF[side].keyframe_insert('rotation_euler', frame=f)
+        info.append(dict(v=v, rpm=v / (RR / 1000) * 35 / 11 * 60 / (2 * math.pi), steer=math.degrees(steer_a), xray=f >= XR))
+    for o in [ROOT, rear, mot] + list(steer.values()) + list(spinF.values()):
+        for fc in o.animation_data.action.fcurves:
+            for kp in fc.keyframe_points: kp.interpolation = 'LINEAR'
+    json.dump(info, open(os.path.join(HERE, 'drive.json'), 'w'))
+    # camera: chase from behind-left, then a low side tracking shot, then a high orbit for the x-ray part
+    TGT.parent = None
+    for f in range(1, NF + 1, 2):
+        sc.frame_set(f); bpy.context.view_layer.update()
+        mw = ROOT.matrix_world; c = mw @ Vector((140, 0, 30)); fwd = (mw @ Vector((1000, 0, 0)) - mw @ Vector((0, 0, 0))).normalized()
+        side = Vector((-fwd.y, fwd.x, 0))
+        if f < 120:   off = -fwd * 0.75 + side * 0.35 + Vector((0, 0, 0.16))
+        elif f < XR:  off = side * 0.8 - fwd * 0.1 + Vector((0, 0, 0.07))
+        else:
+            a = (f - XR) / (NF - XR) * 2.2; off = (fwd * math.cos(a) + side * math.sin(a)) * 0.7 + Vector((0, 0, 0.42))
+        CAM.location = c + off; CAM.keyframe_insert('location', frame=f); TGT.location = c; TGT.keyframe_insert('location', frame=f)
+    cd.lens = 50; cd.dof.aperture_fstop = 7
+    for nm in ('top_a', 'top_b', 'top_c'):                       # wider softboxes: the car leaves the middle of the room
+        o = bpy.data.objects.get(nm)
+        if o: o.data.size *= 2.2; o.data.energy *= 2.0
+    sc.render.filepath = os.path.join(HERE, 'drive', '')
+    if len(args) > 1:
+        sc.render.resolution_percentage = 25
+        for f in [int(a) for a in args[1:]]: shoot(os.path.join(HERE, f'test_drive_{f:04d}.png'), f)
+    else:
+        bpy.ops.render.render(animation=True)
