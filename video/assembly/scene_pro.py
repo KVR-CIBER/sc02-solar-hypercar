@@ -435,12 +435,24 @@ elif MODE == 'steer':
     def attach(o, e):
         bpy.context.view_layer.update(); mw = o.matrix_world.copy(); o.parent = e; o.matrix_parent_inverse = e.matrix_world.inverted() @ o.parent.parent.matrix_world if False else e.matrix_world.inverted() @ ROOT.matrix_world; o.matrix_world = mw
 
+    def centre(n):                                           # real wheel centre (mm, car axes) from the tyre geometry
+        o = objs[n]; pts = [o.matrix_world @ Vector(c) for c in o.bound_box]
+        return [sum(p[i] for p in pts) / 8 * 1000 for i in range(3)]
     steer, spin = {}, {}
     for side, s in (('L', 1), ('R', -1)):
         k = pivot('kingpin_' + side, (WB, s * KP, 0))
-        sp = pivot('spinF_' + side, (0, s * (TF / 2 - KP), AFZ), k)
+        fc = centre('tyre_F' + side); rc = centre('tyre_R' + side)
+        sp = pivot('spinF_' + side, (fc[0] - WB, fc[1] - s * KP, fc[2]), k)      # wheel turns about its own axle
         steer[side] = k; spin['F' + side] = sp
-        spr = pivot('spinR_' + side, (0, s * TR / 2, ARZ)); spin['R' + side] = spr
+        spr = pivot('spinR_' + side, tuple(rc)); spin['R' + side] = spr
+        # stub axle from the upright to the wheel hub (the CAD has none; without it the wheel seems to float)
+        L = abs(fc[1]) - KP + 2.0
+        bpy.ops.mesh.primitive_cylinder_add(radius=1.6, depth=L, vertices=24)
+        ax = bpy.context.object; ax.name = 'stub_axle_' + side; ax.data.materials.append(M['metal'])
+        ax.parent = k; ax.rotation_euler = (math.radians(90), 0, 0); ax.location = (fc[0] - WB, s * (L / 2 - 1.0), fc[2])
+        bpy.ops.mesh.primitive_cylinder_add(radius=3.2, depth=5.0, vertices=32)
+        hb = bpy.context.object; hb.name = 'hub_' + side; hb.data.materials.append(M['dark'])
+        hb.parent = k; hb.rotation_euler = (math.radians(90), 0, 0); hb.location = (fc[0] - WB, fc[1] - s * KP - s * 9.0, fc[2])
     bpy.context.view_layer.update()
     for side in 'LR':
         for nm in ('rim_F' + side, 'tyre_F' + side):
