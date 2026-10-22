@@ -259,6 +259,26 @@ def follow_anim():
                 ch.hide_render = False; ch.keyframe_insert('hide_render', frame=int(fa))
 
 
+
+def static_stub_axles():
+    """front stub axles + hubs (upright -> wheel), the CAD has none; animated versions live in the steer mode"""
+    bpy.context.view_layer.update()
+    for side, sg in (('L', 1), ('R', -1)):
+        o = objs.get('tyre_F' + side)
+        if not o: continue
+        pts = [o.matrix_world @ Vector(c) for c in o.bound_box]; fc = [sum(p[i] for p in pts) / 8 * 1000 for i in range(3)]
+        L = abs(fc[1]) - 64.0 + 2.0
+        bpy.ops.mesh.primitive_cylinder_add(radius=1.6, depth=L, vertices=24); ax = bpy.context.object
+        ax.data.materials.append(M['metal']); ax.parent = ROOT; ax.rotation_euler = (math.radians(90), 0, 0)
+        ax.location = (fc[0], sg * (64.0 + L / 2 - 1.0), fc[2])
+        bpy.ops.mesh.primitive_cylinder_add(radius=3.2, depth=5.0, vertices=32); hb = bpy.context.object
+        hb.data.materials.append(M['dark']); hb.parent = ROOT; hb.rotation_euler = (math.radians(90), 0, 0)
+        hb.location = (fc[0], fc[1] - sg * 9.0, fc[2])
+
+
+if MODE in ('explain', 'beauty', 'turntable'):
+    static_stub_axles()
+
 def ease(t):
     t = max(0.0, min(1.0, t)); return 1 - (1 - t) ** 3
 
@@ -565,8 +585,29 @@ elif MODE == 'explain':
         meta.append(dict(f0=f1, f1=f2, title=t, sub=sub, labels=[[nm, txt, s2] for nm, _, txt, s2 in labels]))
         for nm, a, _, _ in labels:
             e = bpy.data.objects.new('a_' + nm, None); bpy.context.collection.objects.link(e); e.location = mm(*a); ANCH[nm] = e
-    for fc in [fc for o in (CAM, TGT) for fc in o.animation_data.action.fcurves]:
-        for kp in fc.keyframe_points: kp.interpolation = 'BEZIER'; kp.easing = 'EASE_IN_OUT'
+    # camera path: per frame in polar coordinates around the moving target, so a move between two shots swings
+    # round and OVER the car instead of cutting straight through it
+    CAM.animation_data_clear(); TGT.animation_data_clear()
+    poses = []
+    for i, (t, sub, tg, ang, r, h, vis, labels) in enumerate(SH):
+        f1 = 1 + i * (HOLD + MOVE) + MOVE; f2 = f1 + HOLD - 1
+        poses.append((f1, f2, Vector(tg), ang, r, h))
+    def pose_at(f):
+        for k, (f1, f2, tg, ang, r, h) in enumerate(poses):
+            if f <= f2 or k == len(poses) - 1:
+                if f >= f1 or k == 0:
+                    u = min(1, max(0, (f - f1) / max(1, f2 - f1)))
+                    return tg, ang + 12 * u, r * (1 - 0.07 * u), h, 0.0
+                p0 = poses[k - 1]; a0 = p0[3] + 12; a1 = ang
+                d = (a1 - a0 + 180) % 360 - 180                   # shortest way round
+                u = (f - p0[1]) / max(1, f1 - p0[1]); e = u * u * (3 - 2 * u)
+                lift = 0.35 * math.sin(math.pi * e) * max(0.4, abs(d) / 180)
+                return p0[2].lerp(tg, e), a0 + d * e, p0[4] * 0.93 + (r - p0[4] * 0.93) * e, p0[5] + (h - p0[5]) * e, lift
+    for f in range(1, NE + 1):
+        tg, ang, r, h, lift = pose_at(f)
+        q, _ = polar(ang, r + lift * 0.6, h + lift, tz=tg.z / 1000, tx=tg.x / 1000)
+        CAM.location = (q[0], q[1] + tg.y / 1000, q[2]); CAM.keyframe_insert('location', frame=f)
+        TGT.location = tg / 1000; TGT.keyframe_insert('location', frame=f)
     cd.dof.aperture_fstop = 5.6
     pos = {}
     for f in range(1, NE + 1):
