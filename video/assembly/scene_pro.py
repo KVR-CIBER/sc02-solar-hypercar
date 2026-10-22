@@ -208,21 +208,36 @@ for nm, (bx, by, sx, sy, h, m) in {'L1': (129.5, -57.5, 10.0, 10.0, 3.8, M['dark
                                    'TPS54560': (116.5, -52.5, 4.9, 3.9, 1.7, mat('ic', (0.012, 0.012, 0.014), 0.4))}.items():
     pbox('pcb_' + nm, (sx, sy, h), (bx, -by, 1.6 + h / 2), m, PB, bevel=0.3)
 
-# LiPo: rounded pouch in shrink wrap with a printed label, red/black leads to a yellow XT60, white balance plug
+# LiPo: soft pouch with rounded edges under glossy shrink wrap, wrap-around label, reinforced lead exit, real XT60 + JST-XH
 LX, LY, LZ = 72.0, 35.0, 14.0
 L0 = Vector((38 + 5 + 1.6, 0.4 + 1.6, 19.6 + 1.6))          # tray: x0 + wall, y0 + wall, top of the tray floor
 BAT = bpy.data.objects.new('lipo_real', None); bpy.context.collection.objects.link(BAT); BAT.parent = ROOT
-wrap = mat('krimpfolie', (0.012, 0.012, 0.014), 0.18, coat=0.6, coat_rough=0.1)
-pbox('lipo_pouch', (LX, LY, LZ), (L0.x + LX / 2, L0.y + LY / 2, L0.z + LZ / 2), wrap, BAT, bevel=2.4)
-lab = mat('lipo_label', (1, 1, 1), 0.3, coat=0.8, coat_rough=0.05)
-n_, l_, b_ = nodes(lab); tx = n_.new('ShaderNodeTexImage'); tx.image = bpy.data.images.load(os.path.join(HERE, 'assets', 'lipo_label.png'))
-l_.new(tx.outputs['Color'], b_.inputs['Base Color'])
-bpy.ops.mesh.primitive_plane_add(size=1); lp_ = bpy.context.object; lp_.name = 'lipo_label'; lp_.parent = BAT
-lp_.scale = (LX - 6, LY - 5, 1); lp_.location = (L0.x + LX / 2, L0.y + LY / 2, L0.z + LZ + 0.05); lp_.data.materials.append(lab)
+wrap = mat('krimpfolie', (0.010, 0.010, 0.012), 0.12, coat=1.0, coat_rough=0.06)
+
+
+def img_mat(name, path, rough=0.25):
+    m = mat(name, (1, 1, 1), rough, coat=1.0, coat_rough=0.05)
+    n_, l_, b_ = nodes(m); t_ = n_.new('ShaderNodeTexImage'); t_.image = bpy.data.images.load(os.path.join(HERE, 'assets', path))
+    l_.new(t_.outputs['Color'], b_.inputs['Base Color'])
+    return m
+
+
+pouch = pbox('lipo_pouch', (LX, LY, LZ), (L0.x + LX / 2, L0.y + LY / 2, L0.z + LZ / 2), wrap, BAT, bevel=3.2)
+pouch.modifiers['bv'].segments = 8
+sub = pouch.modifiers.new('soft', 'SUBSURF'); sub.levels = 1; sub.render_levels = 2
+for nm, img, w, h, loc, rot in (('lipo_label', 'lipo_label.png', LX - 9, LY - 6, (L0.x + LX / 2, L0.y + LY / 2, L0.z + LZ + 0.06), (0, 0, 0)),
+                                ('lipo_side_a', 'lipo_side.png', LX - 10, LZ - 5, (L0.x + LX / 2, L0.y - 0.06, L0.z + LZ / 2), (math.radians(90), 0, 0)),
+                                ('lipo_side_b', 'lipo_side.png', LX - 10, LZ - 5, (L0.x + LX / 2, L0.y + LY + 0.06, L0.z + LZ / 2), (math.radians(90), 0, math.radians(180))),
+                                ('lipo_end', 'lipo_end.png', LY - 8, LZ - 5, (L0.x + LX + 0.06, L0.y + LY / 2, L0.z + LZ / 2), (math.radians(90), 0, math.radians(90)))):
+    bpy.ops.mesh.primitive_plane_add(size=1); pl = bpy.context.object; pl.name = nm; pl.parent = BAT
+    pl.scale = (w, h, 1); pl.rotation_euler = rot; pl.location = loc; pl.data.materials.append(img_mat(nm, img))
+# reinforced lead exit on the rear end (sealed pouch edge + clear heat-shrink over the protection strip)
+pbox('lipo_seal', (2.2, LY - 4, LZ - 6), (L0.x - 0.9, L0.y + LY / 2, L0.z + LZ / 2), mat('seal', (0.55, 0.56, 0.58), 0.3, 0.8), BAT, bevel=0.6)
+pbox('lipo_exit', (5.0, 16.0, 6.0), (L0.x - 3.0, L0.y + 11.0, L0.z + 5.0), mat('exit_shrink', (0.02, 0.02, 0.025), 0.2, coat=0.8), BAT, bevel=1.2)
 
 
 def lead(name, pts, r, m, parent):
-    cu = bpy.data.curves.new(name, 'CURVE'); cu.dimensions = '3D'; cu.bevel_depth = r; cu.bevel_resolution = 4
+    cu = bpy.data.curves.new(name, 'CURVE'); cu.dimensions = '3D'; cu.bevel_depth = r; cu.bevel_resolution = 6
     sp = cu.splines.new('BEZIER'); sp.bezier_points.add(len(pts) - 1)
     for bp, p in zip(sp.bezier_points, pts):
         bp.co = p; bp.handle_left_type = bp.handle_right_type = 'AUTO'
@@ -230,16 +245,23 @@ def lead(name, pts, r, m, parent):
     return o
 
 
-red, blk, wht = mat('draad_rood', (0.5, 0.01, 0.01), 0.35, coat=0.3), mat('draad_zwart', (0.01, 0.01, 0.012), 0.35, coat=0.3), mat('xh', (0.85, 0.84, 0.8), 0.45)
-xt = (43.0, -36.5, 11.6 + 16.0 + 4.0)                     # female XT60 on top of the board's male XT60
-for k, (m, dy) in enumerate(((red, 2.2), (blk, -2.2))):
-    lead('lipo_lead_' + str(k), [(L0.x + 1, L0.y + 9 + dy, L0.z + 6), (L0.x - 8, L0.y + 4 + dy, L0.z + 12), (xt[0] + 2, -18 + dy, xt[2] + 6),
-                                 (xt[0], xt[1] + 8 + dy * 0.5, xt[2] + 4)], 1.05, m, BAT)
-pbox('xt60_female', (16.0, 8.2, 8.0), xt, M['xt60'], BAT, bevel=0.8)
-for k, m in enumerate((red, blk, blk)):
-    lead('lipo_bal_' + str(k), [(L0.x + 1, L0.y + 26 + k * 1.3, L0.z + 4), (L0.x - 6, L0.y + 28 + k * 1.3, L0.z + 10),
-                                (L0.x + 14, L0.y + 26 + k * 1.3, L0.z + LZ + 3), (L0.x + 26, L0.y + 24 + k * 1.3, L0.z + LZ + 1.6)], 0.45, m, BAT)
-pbox('lipo_balance_plug', (6.0, 9.9, 4.8), (L0.x + 30, L0.y + 25.3, L0.z + LZ + 2.5), wht, BAT, bevel=0.3)
+red, blk, wht = mat('draad_rood', (0.55, 0.01, 0.01), 0.45, coat=0.2), mat('draad_zwart', (0.012, 0.012, 0.014), 0.45, coat=0.2), mat('xh', (0.88, 0.87, 0.83), 0.5)
+yel = mat('xt60_geel', (0.95, 0.62, 0.02), 0.38, coat=0.3); gold = M['gold']
+xt = Vector((43.0, -36.5, 11.6 + 16.0 + 4.5))              # female XT60 plugged onto the board's male XT60
+for k, (m, dy) in enumerate(((red, 2.3), (blk, -2.3))):     # 14 AWG silicone leads
+    lead('lipo_lead_' + str(k), [(L0.x - 5, L0.y + 11 + dy, L0.z + 5), (L0.x - 14, L0.y + 6 + dy, L0.z + 11),
+                                 (xt.x + 3, -16 + dy, xt.z + 9), (xt.x + 0.5, xt.y + 9 + dy * 0.6, xt.z + 5.5)], 1.15, m, BAT)
+xb = pbox('xt60_body', (15.6, 8.2, 8.0), (xt.x, xt.y, xt.z), yel, BAT, bevel=0.9)
+pbox('xt60_rib', (15.6, 1.2, 2.0), (xt.x, xt.y - 4.4, xt.z - 2.6), yel, BAT, bevel=0.3)
+for dx in (-3.6, 3.6):                                     # the two brass contacts at the wire end
+    bpy.ops.mesh.primitive_cylinder_add(radius=1.6, depth=2.5, location=(xt.x + dx, xt.y, xt.z + 5.2)); c_ = bpy.context.object
+    c_.parent = BAT; c_.data.materials.append(gold)
+for k, m in enumerate((red, blk, blk)):                     # 22 AWG balance lead
+    lead('lipo_bal_' + str(k), [(L0.x - 4, L0.y + 25 + k * 1.3, L0.z + 4), (L0.x - 10, L0.y + 27 + k * 1.3, L0.z + 10),
+                                (L0.x + 12, L0.y + 26 + k * 1.3, L0.z + LZ + 3.5), (L0.x + 25, L0.y + 24 + k * 1.3, L0.z + LZ + 2.2)], 0.5, m, BAT)
+pbox('lipo_balance_plug', (6.2, 9.9, 4.8), (L0.x + 29.5, L0.y + 25.3, L0.z + LZ + 2.6), wht, BAT, bevel=0.4)
+for k in range(3):
+    pbox('xh_window_' + str(k), (0.6, 1.4, 2.4), (L0.x + 32.7, L0.y + 22.8 + k * 2.5, L0.z + LZ + 2.6), M['dark'], BAT)
 for o in [objs.get('battery')] + [objs[k] for k in objs if k == 'pcb' or k.startswith('pcb_') and k != 'pcb_posts']:
     if o: o.scale = (0, 0, 0)                              # replaced by the real models above
 FOLLOW = {'pcb': [PCB_MOVE], 'battery': [BAT]}
